@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/usecases"
 	"net/http"
 	"strings"
@@ -13,10 +14,10 @@ var (
 )
 
 type Handler struct {
-	useCases *usecases.Usecase
+	useCases *usecases.ServerUc
 }
 
-func New(uc *usecases.Usecase) *Handler {
+func NewServer(uc *usecases.ServerUc) *Handler {
 	return &Handler{
 		useCases: uc,
 	}
@@ -52,6 +53,8 @@ func (h Handler) setMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 
 		http.Error(w, err.Error(), status)
+
+		fmt.Println(err, r.URL)
 
 		return
 	}

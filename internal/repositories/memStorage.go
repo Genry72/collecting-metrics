@@ -1,6 +1,8 @@
 package repositories
 
-import "sync"
+import (
+	"sync"
+)
 
 type MemStorage struct {
 	sync.Mutex

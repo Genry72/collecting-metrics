@@ -16,17 +16,17 @@ var (
 	ErrParseValue    = errors.New("fail parse metric value")
 )
 
-type Usecase struct {
+type ServerUc struct {
 	memStorage repositories.Repositories
 }
 
-func New(repo repositories.Repositories) *Usecase {
-	return &Usecase{
+func NewServerUc(repo repositories.Repositories) *ServerUc {
+	return &ServerUc{
 		memStorage: repo,
 	}
 }
 
-func (uc *Usecase) SetMetric(typ, name, value string) error {
+func (uc *ServerUc) SetMetric(typ, name, value string) error {
 	var (
 		m   repositories.Metric
 		err error

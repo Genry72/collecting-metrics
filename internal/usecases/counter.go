@@ -14,7 +14,7 @@ type counter struct {
 func newCounter(typ, name, value string) (*counter, error) {
 	val, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrParseValue, err.Error())
+		return nil, fmt.Errorf("%w: %s name: %s", ErrParseValue, err.Error(), name)
 	}
 
 	return &counter{
