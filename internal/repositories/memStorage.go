@@ -17,7 +17,7 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
-func (m MemStorage) SetMetric(metric Metric) error {
+func (m *MemStorage) SetMetric(metric Metric) error {
 	m.Lock()
 
 	if m.storage[metric.GetType()] == nil {

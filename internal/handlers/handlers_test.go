@@ -103,6 +103,9 @@ func TestHandler_setMetrics(t *testing.T) {
 			res := w.Result()
 			// проверяем код ответа
 			assert.Equal(t, tt.want.code, res.StatusCode)
+			if err := res.Body.Close(); err != nil {
+				t.Error(err)
+			}
 		})
 	}
 
