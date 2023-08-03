@@ -2,14 +2,14 @@ package usecases
 
 import (
 	"fmt"
-	"io"
+	"github.com/go-resty/resty/v2"
 	"log"
 	"net/http"
 	"time"
 )
 
 type Agent struct {
-	httpClient *http.Client
+	httpClient *resty.Client
 	hostPort   string
 }
 
@@ -19,7 +19,7 @@ type metricer interface {
 
 func NewAgent(hostPort string) *Agent {
 	return &Agent{
-		httpClient: &http.Client{},
+		httpClient: resty.New(),
 		hostPort:   hostPort,
 	}
 }
@@ -38,29 +38,13 @@ func (a *Agent) SendMetrics(metric metricer, reportInterval time.Duration) {
 }
 
 func (a *Agent) send(url string) error {
-	request, err := http.NewRequest("POST", a.hostPort+url, nil)
+	resp, err := a.httpClient.R().Post(a.hostPort + url)
 	if err != nil {
 		return err
 	}
 
-	resp, err := a.httpClient.Do(request)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Println(err)
-		}
-	}()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%s :%s", resp.Status, string(body))
+	if resp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("%s :%s", resp.Status(), string(resp.Body()))
 	}
 
 	return nil

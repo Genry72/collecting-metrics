@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
@@ -54,7 +55,7 @@ func TestAgent_send(t *testing.T) {
 			defer server.Close()
 
 			a := &Agent{
-				httpClient: &http.Client{},
+				httpClient: resty.New(),
 				hostPort:   server.URL,
 			}
 

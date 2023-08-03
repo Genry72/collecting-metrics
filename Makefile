@@ -5,6 +5,7 @@ test:
 	chmod +x ./cmd/agent
 	./metricstest -test.v -test.run=^TestIteration1$$  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"
 	./metricstest -test.v -test.run=^TestIteration2  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"
+	./metricstest -test.v -test.run=^TestIteration3  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"
 
 runServer:
 	go run ./cmd/server

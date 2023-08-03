@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/Genry72/collecting-metrics/internal/repositories"
 	"github.com/Genry72/collecting-metrics/internal/usecases"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -99,13 +100,16 @@ func TestHandler_setMetrics(t *testing.T) {
 			}
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(tt.args.method, tt.args.url, nil)
-			h.setMetrics(w, r)
-			res := w.Result()
+			//h.setMetrics(w, r)
+			g := gin.Default()
+			h.setupRoute(g)
+			g.ServeHTTP(w, r)
+			//res := w.Result()
 			// проверяем код ответа
-			assert.Equal(t, tt.want.code, res.StatusCode)
-			if err := res.Body.Close(); err != nil {
-				t.Error(err)
-			}
+			assert.Equal(t, tt.want.code, w.Code, w.Body.String())
+			//if err := w.Body.; err != nil {
+			//	t.Error(err)
+			//}
 		})
 	}
 

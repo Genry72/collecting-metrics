@@ -2,19 +2,20 @@ package usecases
 
 import (
 	"fmt"
+	"github.com/Genry72/collecting-metrics/internal/models"
 	"strconv"
 )
 
 type gauge struct {
-	typ   string
-	name  string
+	typ   models.MetricType
+	name  models.MetricName
 	value float64
 }
 
-func newGauge(typ, name, value string) (*gauge, error) {
+func newGauge(typ models.MetricType, name models.MetricName, value string) (*gauge, error) {
 	val, err := strconv.ParseFloat(value, 64)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrParseValue, err.Error())
+		return nil, fmt.Errorf("%w: %s", models.ErrParseValue, err.Error())
 	}
 
 	return &gauge{
@@ -24,11 +25,11 @@ func newGauge(typ, name, value string) (*gauge, error) {
 	}, nil
 }
 
-func (m *gauge) GetType() string {
+func (m *gauge) GetType() models.MetricType {
 	return m.typ
 }
 
-func (m *gauge) GetName() string {
+func (m *gauge) GetName() models.MetricName {
 	return m.name
 }
 
