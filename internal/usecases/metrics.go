@@ -120,6 +120,8 @@ func (m *Metrics) updateMetics() {
 	m.gauge.Sys = m.rtm.Sys
 	m.gauge.TotalAlloc = m.rtm.TotalAlloc
 	m.counter.PollCount++
-	rand.Seed(time.Now().UnixNano())
-	m.gauge.RandomValue = rand.Float64()
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	m.gauge.RandomValue = r.Float64()
 }
