@@ -59,7 +59,7 @@ func TestHandler_setMetrics(t *testing.T) {
 				url:    "/update/gauge/name/11",
 			},
 			want: want{
-				code:     http.StatusMethodNotAllowed,
+				code:     http.StatusNotFound,
 				response: "",
 			},
 		},
@@ -88,6 +88,20 @@ func TestHandler_setMetrics(t *testing.T) {
 			},
 			want: want{
 				code:     http.StatusBadRequest,
+				response: "",
+			},
+		},
+		{
+			name: "negative test #4",
+			fields: fields{
+				useCases: uc,
+			},
+			args: args{
+				method: http.MethodPost,
+				url:    "/update/gauge/11",
+			},
+			want: want{
+				code:     http.StatusNotFound,
 				response: "",
 			},
 		},

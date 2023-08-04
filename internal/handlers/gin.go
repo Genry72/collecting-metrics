@@ -1,9 +1,7 @@
 package handlers
 
 import (
-	"github.com/Genry72/collecting-metrics/internal/models"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 func (h *Handler) RunServer(port string) error {
@@ -26,12 +24,4 @@ func (h *Handler) setupRoute(g *gin.Engine) {
 
 	value := g.Group("value")
 	value.GET("/:type/:name", h.getMetricValue)
-
-	g.NoRoute(func(c *gin.Context) {
-		if c.Request.Method == http.MethodPost {
-			return
-		}
-		c.String(http.StatusMethodNotAllowed, models.ErrOnlyPost.Error())
-	})
-
 }
