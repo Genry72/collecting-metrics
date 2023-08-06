@@ -7,6 +7,7 @@ import (
 
 type MemStorage struct {
 	sync.RWMutex
+	// todo пустой интерфейс не есть хорошо, но вариантов больше не придумал
 	storage map[models.MetricType]map[models.MetricName]interface{}
 }
 
