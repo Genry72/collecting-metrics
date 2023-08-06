@@ -1,6 +1,10 @@
 package main
 
-import "flag"
+import (
+	"flag"
+	"os"
+	"strconv"
+)
 
 func parseFlags() {
 	// регистрируем переменную flagEndpointServer
@@ -10,4 +14,21 @@ func parseFlags() {
 	flag.IntVar(&flagPollInterval, "p", 2, "poll interval")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
+
+	if endpoint := os.Getenv(envEndpoint); endpoint != "" {
+		flagEndpointServer = endpoint
+	}
+
+	if reportInterval := os.Getenv(envreportInterval); reportInterval != "" {
+		if ri, err := strconv.ParseInt(reportInterval, 10, 64); err == nil {
+			flagReportInterval = int(ri)
+		}
+	}
+
+	if pollInterval := os.Getenv(envPollInterval); pollInterval != "" {
+		if pi, err := strconv.ParseInt(pollInterval, 10, 64); err == nil {
+			flagPollInterval = int(pi)
+		}
+	}
+
 }

@@ -10,6 +10,8 @@ import (
 
 var flagRunAddr string
 
+const envRunAddr = "ADDRESS"
+
 func main() {
 	fmt.Println("start server")
 	repo := repositories.NewMemStorage()

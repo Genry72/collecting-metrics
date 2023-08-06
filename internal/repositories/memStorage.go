@@ -24,12 +24,14 @@ func (m *MemStorage) SetMetric(metric Metric) error {
 
 	if m.storage[metric.GetType()] == nil {
 		m.storage[metric.GetType()] = make(map[models.MetricName]interface{})
-		m.storage[metric.GetType()][metric.GetName()] = int64(0)
 	}
 
 	switch string(metric.GetType()) {
 	case models.MetricTypeCounter:
 		oldVal := m.storage[metric.GetType()][metric.GetName()]
+		if oldVal == nil {
+			oldVal = int64(0)
+		}
 		m.storage[metric.GetType()][metric.GetName()] = oldVal.(int64) + metric.GetValue().(int64)
 
 	case models.MetricTypeGauge:

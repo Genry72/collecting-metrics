@@ -12,6 +12,12 @@ var (
 	flagPollInterval   int    // частота обновления метрик
 )
 
+const (
+	envEndpoint       = "ADDRESS"
+	envreportInterval = "REPORT_INTERVAL"
+	envPollInterval   = "POLL_INTERVAL"
+)
+
 func main() {
 	fmt.Println("start agent")
 

@@ -7,6 +7,7 @@ test:
 	./metricstest -test.v -test.run=^TestIteration2  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.
 	./metricstest -test.v -test.run=^TestIteration3  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.
 	./metricstest -test.v -test.run=^TestIteration4  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"
+	./metricstest -test.v -test.run=^TestIteration5  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"
 
 runServer:
 	go run ./cmd/server -a :8080
