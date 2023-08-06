@@ -8,6 +8,8 @@ import (
 	"log"
 )
 
+var flagRunAddr string
+
 func main() {
 	fmt.Println("start server")
 	repo := repositories.NewMemStorage()
@@ -16,9 +18,11 @@ func main() {
 
 	h := handlers.NewServer(uc)
 
-	if err := h.RunServer("8080"); err != nil {
+	// обрабатываем аргументы командной строки
+	parseFlags()
+
+	if err := h.RunServer(flagRunAddr); err != nil {
 		log.Println(err)
 		return
 	}
-
 }

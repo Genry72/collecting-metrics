@@ -6,17 +6,25 @@ import (
 	"time"
 )
 
+var (
+	flagEndpointServer string // endpoint сервера
+	flagReportInterval int    // частота оправки метрик в секундах
+	flagPollInterval   int    // частота обновления метрик
+)
+
 func main() {
 	fmt.Println("start agent")
 
 	metrics := usecases.NewMetrics()
 
+	// обрабатываем аргументы командной строки
+	parseFlags()
 	// Запускаем обновление раз в 2 секунты
-	metrics.Update(2 * time.Second)
+	metrics.Update(time.Duration(flagPollInterval) * time.Second)
 
-	agent := usecases.NewAgent("http://localhost:8080")
+	agent := usecases.NewAgent("http://" + flagEndpointServer)
 
 	// Запускаем отправку метрик раз 10 секунд
-	agent.SendMetrics(metrics, 10*time.Second)
+	agent.SendMetrics(metrics, time.Duration(flagReportInterval)*time.Second)
 
 }

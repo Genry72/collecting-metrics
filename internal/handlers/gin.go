@@ -4,12 +4,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *Handler) RunServer(port string) error {
+func (h *Handler) RunServer(hostPort string) error {
 	gin.SetMode(gin.DebugMode)
 	g := gin.New()
 	h.setupRoute(g)
 
-	if err := g.Run(":" + port); err != nil {
+	if err := g.Run(hostPort); err != nil {
 		return err
 	}
 
