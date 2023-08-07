@@ -14,12 +14,14 @@ type Agent struct {
 }
 
 type metricer interface {
-	getUrlsMetric() chan string
+	getUrlsMetric() []string
 }
 
 func NewAgent(hostPort string) *Agent {
+	restyClient := resty.New()
+	restyClient.SetTimeout(time.Second)
 	return &Agent{
-		httpClient: resty.New(),
+		httpClient: restyClient,
 		hostPort:   hostPort,
 	}
 }
@@ -28,7 +30,7 @@ func NewAgent(hostPort string) *Agent {
 func (a *Agent) SendMetrics(metric metricer, reportInterval time.Duration) {
 	for {
 		time.Sleep(reportInterval)
-		for url := range metric.getUrlsMetric() {
+		for _, url := range metric.getUrlsMetric() {
 			if err := a.send(url); err != nil {
 				fmt.Println(err)
 			}
