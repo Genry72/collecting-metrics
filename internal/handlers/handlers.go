@@ -28,42 +28,24 @@ func (h *Handler) setMetrics(c *gin.Context) {
 	}
 
 	if err := h.useCases.SetMetric(&metric); err != nil {
-		var status int
-		if errors.Is(err, models.ErrBadMetricType) || errors.Is(err, models.ErrParseValue) {
-			status = http.StatusBadRequest
-		} else {
-			status = http.StatusInternalServerError
-		}
-
+		status := checkError(err)
 		c.String(status, err.Error())
-
 		return
 	}
-
 }
 
 func (h *Handler) getMetricValue(c *gin.Context) {
 	var metric models.GetMetrics
 	if err := c.ShouldBindUri(&metric); err != nil {
 		c.String(http.StatusBadRequest, "%v", err)
-
 		log.Println(err)
-
 		return
 	}
 
 	val, err := h.useCases.GetMetricValue(metric)
-
 	if err != nil {
-		var status int
-		if errors.Is(err, models.ErrMetricTypeNotFound) || errors.Is(err, models.ErrMetricNameNotFound) {
-			status = http.StatusNotFound
-		} else {
-			status = http.StatusInternalServerError
-		}
-
+		status := checkError(err)
 		c.String(status, err.Error())
-
 		return
 	}
 
@@ -76,12 +58,7 @@ func (h *Handler) getAllMetrics(c *gin.Context) {
 	val, err := h.useCases.GetAllMetrics()
 
 	if err != nil {
-		var status int
-		if errors.Is(err, models.ErrMetricTypeNotFound) || errors.Is(err, models.ErrMetricNameNotFound) {
-			status = http.StatusNotFound
-		} else {
-			status = http.StatusInternalServerError
-		}
+		status := checkError(err)
 
 		c.String(status, err.Error())
 
@@ -91,4 +68,18 @@ func (h *Handler) getAllMetrics(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, "%v", val)
+}
+
+func checkError(err error) int {
+	var status int
+
+	switch {
+	case errors.Is(err, models.ErrBadMetricType) || errors.Is(err, models.ErrParseValue):
+		status = http.StatusBadRequest
+	case errors.Is(err, models.ErrMetricTypeNotFound) || errors.Is(err, models.ErrMetricNameNotFound):
+		status = http.StatusNotFound
+	default:
+		status = http.StatusInternalServerError
+	}
+	return status
 }
