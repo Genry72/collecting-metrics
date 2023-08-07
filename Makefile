@@ -1,3 +1,6 @@
+# Как правильно добавить .PHONY, чтобы тесты запускались всегда?
+# В таком варианте make runAgent не запускает тесты, или имелось ввиду другое?
+.PHONY: test
 test:
 	go build -o ./cmd/server/ ./cmd/server/
 	chmod +x ./cmd/server

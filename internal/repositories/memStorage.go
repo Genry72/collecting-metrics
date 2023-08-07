@@ -1,69 +1,86 @@
 package repositories
 
 import (
+	"context"
 	"github.com/Genry72/collecting-metrics/internal/models"
 	"sync"
 )
 
 type MemStorage struct {
-	sync.RWMutex
-	// todo пустой интерфейс не есть хорошо, но вариантов больше не придумал
-	storage map[models.MetricType]map[models.MetricName]interface{}
+	mx             sync.RWMutex
+	storageCounter map[models.MetricName]int64
+	storageGauge   map[models.MetricName]float64
 }
 
 func NewMemStorage() *MemStorage {
-	storage := make(map[models.MetricType]map[models.MetricName]interface{})
+	storageCounter := make(map[models.MetricName]int64)
+	storageGauge := make(map[models.MetricName]float64)
 
 	return &MemStorage{
-		storage: storage,
+		storageCounter: storageCounter,
+		storageGauge:   storageGauge,
 	}
 }
 
-func (m *MemStorage) SetMetric(metric Metric) error {
-	m.Lock()
-	defer m.Unlock()
+func (m *MemStorage) SetMetricCounter(ctx context.Context, name models.MetricName, value int64) error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
 
-	if m.storage[metric.GetType()] == nil {
-		m.storage[metric.GetType()] = make(map[models.MetricName]interface{})
-	}
-
-	switch string(metric.GetType()) {
-	case models.MetricTypeCounter:
-		oldVal := m.storage[metric.GetType()][metric.GetName()]
-		if oldVal == nil {
-			oldVal = int64(0)
-		}
-		m.storage[metric.GetType()][metric.GetName()] = oldVal.(int64) + metric.GetValue().(int64)
-
-	case models.MetricTypeGauge:
-		m.storage[metric.GetType()][metric.GetName()] = metric.GetValue()
-
-	default:
-		return models.ErrMetricTypeNotFound
-	}
+	m.storageCounter[name] += value
 
 	return nil
 }
 
-func (m *MemStorage) GetMetricValue(metric models.GetMetrics) (interface{}, error) {
-	m.RLock()
-	defer m.RUnlock()
+func (m *MemStorage) SetMetricGauge(ctx context.Context, name models.MetricName, value float64) error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
 
-	if _, ok := m.storage[metric.Type]; !ok {
-		return nil, models.ErrMetricTypeNotFound
-	}
+	m.storageGauge[name] = value
 
-	val, ok := m.storage[metric.Type][metric.Name]
+	return nil
+}
+
+func (m *MemStorage) GetMetricValueCounter(ctx context.Context, name models.MetricName) (int64, error) {
+	m.mx.RLock()
+	defer m.mx.RUnlock()
+
+	val, ok := m.storageCounter[name]
 	if !ok {
-		return nil, models.ErrMetricNameNotFound
+		return 0, models.ErrMetricNameNotFound
 	}
 
 	return val, nil
 }
 
-func (m *MemStorage) GetAllMetrics() (map[models.MetricType]map[models.MetricName]interface{}, error) {
-	if len(m.storage) == 0 {
+func (m *MemStorage) GetMetricValueGauge(ctx context.Context, name models.MetricName) (float64, error) {
+	m.mx.RLock()
+	defer m.mx.RUnlock()
+
+	val, ok := m.storageGauge[name]
+	if !ok {
+		return 0, models.ErrMetricNameNotFound
+	}
+
+	return val, nil
+}
+
+func (m *MemStorage) GetAllMetrics(ctx context.Context) (map[models.MetricName]interface{}, error) {
+	m.mx.RLock()
+	defer m.mx.RUnlock()
+	result := make(map[models.MetricName]interface{}, len(m.storageGauge)+len(m.storageCounter))
+
+	for k, v := range m.storageCounter {
+		result[k] = v
+	}
+
+	for k, v := range m.storageGauge {
+		result[k] = v
+	}
+
+	if len(result) == 0 {
 		return nil, models.ErrStorageIsEmpty
 	}
-	return m.storage, nil
+
+	return result, nil
+
 }

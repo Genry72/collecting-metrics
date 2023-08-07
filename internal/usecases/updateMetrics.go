@@ -58,26 +58,23 @@ type counterMetrics struct {
 }
 
 // Получение улов для отправки метрик
-func (m *Metrics) getUrlsMetric() chan string {
-	ch := make(chan string)
+func (m *Metrics) getUrlsMetric() []string {
 	gaugeMetricData := structs.Map(m.gauge)
 	counterMetricsData := structs.Map(m.counter)
 
-	go func() {
-		for metricName, value := range gaugeMetricData {
-			url := fmt.Sprintf("/update/gauge/%s/%v", metricName, value)
-			ch <- url
-		}
+	result := make([]string, 0, len(gaugeMetricData)+len(counterMetricsData))
 
-		for metricName, value := range counterMetricsData {
-			url := fmt.Sprintf("/update/counter/%s/%v", metricName, value)
-			ch <- url
-		}
+	for metricName, value := range gaugeMetricData {
+		url := fmt.Sprintf("/update/gauge/%s/%v", metricName, value)
+		result = append(result, url)
+	}
 
-		close(ch)
-	}()
+	for metricName, value := range counterMetricsData {
+		url := fmt.Sprintf("/update/counter/%s/%v", metricName, value)
+		result = append(result, url)
+	}
 
-	return ch
+	return result
 }
 
 // Update Запуск обновления метрик с заданным интервалом

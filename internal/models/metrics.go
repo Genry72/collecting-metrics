@@ -1,8 +1,8 @@
 package models
 
 const (
-	MetricTypeGauge   = "gauge"
-	MetricTypeCounter = "counter"
+	MetricTypeGauge   MetricType = "gauge"
+	MetricTypeCounter MetricType = "counter"
 )
 
 type UpdateMetrics struct {
@@ -17,4 +17,5 @@ type GetMetrics struct {
 }
 
 type MetricType string
+
 type MetricName string
