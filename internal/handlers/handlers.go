@@ -21,13 +21,15 @@ func NewServer(uc *usecases.ServerUc) *Handler {
 }
 
 func (h *Handler) setMetrics(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	var metric models.UpdateMetrics
 	if err := c.ShouldBindUri(&metric); err != nil {
 		c.String(http.StatusBadRequest, "%v: %v", err, models.ErrFormatURL)
 		return
 	}
 
-	if err := h.useCases.SetMetric(&metric); err != nil {
+	if err := h.useCases.SetMetric(ctx, &metric); err != nil {
 		status := checkError(err)
 		c.String(status, err.Error())
 		return
@@ -35,14 +37,17 @@ func (h *Handler) setMetrics(c *gin.Context) {
 }
 
 func (h *Handler) getMetricValue(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	var metric models.GetMetrics
+
 	if err := c.ShouldBindUri(&metric); err != nil {
 		c.String(http.StatusBadRequest, "%v", err)
 		log.Println(err)
 		return
 	}
 
-	val, err := h.useCases.GetMetricValue(metric)
+	val, err := h.useCases.GetMetricValue(ctx, metric)
 	if err != nil {
 		status := checkError(err)
 		c.String(status, err.Error())
@@ -53,9 +58,11 @@ func (h *Handler) getMetricValue(c *gin.Context) {
 }
 
 func (h *Handler) getAllMetrics(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	c.Header("Content-Type", "text/html")
 
-	val, err := h.useCases.GetAllMetrics()
+	val, err := h.useCases.GetAllMetrics(ctx)
 
 	if err != nil {
 		status := checkError(err)
