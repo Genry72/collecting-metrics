@@ -12,9 +12,3 @@ type Repositories interface {
 	GetMetricValueGauge(ctx context.Context, name models.MetricName) (float64, error)
 	GetAllMetrics(ctx context.Context) (map[models.MetricName]interface{}, error)
 }
-
-type Metric interface {
-	GetType() models.MetricType
-	GetName() models.MetricName
-	GetValue() interface{}
-}
