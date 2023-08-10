@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/handlers"
-	"github.com/Genry72/collecting-metrics/internal/repositories"
-	"github.com/Genry72/collecting-metrics/internal/usecases"
+	"github.com/Genry72/collecting-metrics/internal/repositories/memstorage"
+	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"log"
 )
 
@@ -14,9 +14,9 @@ const envRunAddr = "ADDRESS"
 
 func main() {
 	fmt.Println("start server")
-	repo := repositories.NewMemStorage()
+	repo := memstorage.NewMemStorage()
 
-	uc := usecases.NewServerUc(repo)
+	uc := server.NewServerUc(repo)
 
 	h := handlers.NewServer(uc)
 

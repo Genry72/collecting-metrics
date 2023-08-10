@@ -1,4 +1,4 @@
-package usecases
+package agent
 
 import (
 	"github.com/go-resty/resty/v2"
@@ -59,8 +59,8 @@ func TestAgent_send(t *testing.T) {
 				hostPort:   server.URL,
 			}
 
-			if err := a.send(tt.args.url); (err != nil) != tt.wantErr {
-				t.Errorf("send() error = %v, wantErr %v", err, tt.wantErr)
+			if err := a.sendByURL(tt.args.url); (err != nil) != tt.wantErr {
+				t.Errorf("sendByURL() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 		})

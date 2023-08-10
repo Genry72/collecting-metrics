@@ -1,7 +1,8 @@
-package usecases
+package agent
 
 import (
 	"fmt"
+	"github.com/Genry72/collecting-metrics/internal/models"
 	"github.com/fatih/structs"
 	"math/rand"
 	"runtime"
@@ -65,12 +66,12 @@ func (m *Metrics) getUrlsMetric() []string {
 	result := make([]string, 0, len(gaugeMetricData)+len(counterMetricsData))
 
 	for metricName, value := range gaugeMetricData {
-		url := fmt.Sprintf("/update/gauge/%s/%v", metricName, value)
+		url := fmt.Sprintf("/update/%s/%s/%v", models.MetricTypeGauge, metricName, value)
 		result = append(result, url)
 	}
 
 	for metricName, value := range counterMetricsData {
-		url := fmt.Sprintf("/update/counter/%s/%v", metricName, value)
+		url := fmt.Sprintf("/update/%s/%s/%v", models.MetricTypeCounter, metricName, value)
 		result = append(result, url)
 	}
 

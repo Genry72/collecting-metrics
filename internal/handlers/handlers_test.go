@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/Genry72/collecting-metrics/internal/repositories"
-	"github.com/Genry72/collecting-metrics/internal/usecases"
+	"github.com/Genry72/collecting-metrics/internal/repositories/memstorage"
+	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -17,7 +17,7 @@ func TestHandler_setMetrics(t *testing.T) {
 	}
 
 	type fields struct {
-		useCases *usecases.ServerUc
+		useCases *server.Server
 	}
 
 	type args struct {
@@ -25,9 +25,9 @@ func TestHandler_setMetrics(t *testing.T) {
 		url    string
 	}
 
-	repo := repositories.NewMemStorage()
+	repo := memstorage.NewMemStorage()
 
-	uc := usecases.NewServerUc(repo)
+	uc := server.NewServerUc(repo)
 
 	tests := []struct {
 		name   string
@@ -131,7 +131,7 @@ func TestHandler_setMetrics(t *testing.T) {
 
 func TestNewServer(t *testing.T) {
 	type args struct {
-		uc *usecases.ServerUc
+		uc *server.Server
 	}
 	tests := []struct {
 		name string
@@ -141,7 +141,7 @@ func TestNewServer(t *testing.T) {
 		{
 			name: "positive",
 			args: args{
-				uc: &usecases.ServerUc{},
+				uc: &server.Server{},
 			},
 			want: nil,
 		},

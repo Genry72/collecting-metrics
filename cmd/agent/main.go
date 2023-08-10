@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Genry72/collecting-metrics/internal/usecases"
+	"github.com/Genry72/collecting-metrics/internal/usecases/agent"
 	"time"
 )
 
@@ -21,16 +21,16 @@ const (
 func main() {
 	fmt.Println("start agent")
 
-	metrics := usecases.NewMetrics()
+	metrics := agent.NewMetrics()
 
 	// обрабатываем аргументы командной строки
 	parseFlags()
 	// Запускаем обновление раз в 2 секунты
 	metrics.Update(time.Duration(flagPollInterval) * time.Second)
 
-	agent := usecases.NewAgent("http://" + flagEndpointServer)
+	agentUc := agent.NewAgent("http://" + flagEndpointServer)
 
 	// Запускаем отправку метрик раз 10 секунд
-	agent.SendMetrics(metrics, time.Duration(flagReportInterval)*time.Second)
+	agentUc.SendMetrics(metrics, time.Duration(flagReportInterval)*time.Second)
 
 }

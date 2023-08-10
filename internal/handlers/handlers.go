@@ -4,17 +4,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/models"
-	"github.com/Genry72/collecting-metrics/internal/usecases"
+	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 )
 
 type Handler struct {
-	useCases *usecases.ServerUc
+	useCases *server.Server
 }
 
-func NewServer(uc *usecases.ServerUc) *Handler {
+func NewServer(uc *server.Server) *Handler {
 	return &Handler{
 		useCases: uc,
 	}

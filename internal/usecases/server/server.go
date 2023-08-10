@@ -1,4 +1,4 @@
-package usecases
+package server
 
 import (
 	"context"
@@ -10,17 +10,17 @@ import (
 	"strings"
 )
 
-type ServerUc struct {
-	memStorage repositories.Repositories
+type Server struct {
+	storage repositories.Repositories
 }
 
-func NewServerUc(repo repositories.Repositories) *ServerUc {
-	return &ServerUc{
-		memStorage: repo,
+func NewServerUc(repo repositories.Repositories) *Server {
+	return &Server{
+		storage: repo,
 	}
 }
 
-func (uc *ServerUc) SetMetric(ctx context.Context, metric *models.UpdateMetrics) error {
+func (uc *Server) SetMetric(ctx context.Context, metric *models.UpdateMetrics) error {
 
 	switch metric.Type {
 	case models.MetricTypeGauge:
@@ -28,7 +28,7 @@ func (uc *ServerUc) SetMetric(ctx context.Context, metric *models.UpdateMetrics)
 		if err != nil {
 			return fmt.Errorf("%w: %s", models.ErrParseValue, err.Error())
 		}
-		if err := uc.memStorage.SetMetricGauge(ctx, metric.Name, val); err != nil {
+		if err := uc.storage.SetMetricGauge(ctx, metric.Name, val); err != nil {
 			return err
 		}
 
@@ -37,7 +37,7 @@ func (uc *ServerUc) SetMetric(ctx context.Context, metric *models.UpdateMetrics)
 		if err != nil {
 			return fmt.Errorf("%w: %s", models.ErrParseValue, err.Error())
 		}
-		if err := uc.memStorage.SetMetricCounter(ctx, metric.Name, val); err != nil {
+		if err := uc.storage.SetMetricCounter(ctx, metric.Name, val); err != nil {
 			return err
 		}
 
@@ -48,14 +48,14 @@ func (uc *ServerUc) SetMetric(ctx context.Context, metric *models.UpdateMetrics)
 	return nil
 }
 
-func (uc *ServerUc) GetMetricValue(ctx context.Context, metric models.GetMetrics) (interface{}, error) {
+func (uc *Server) GetMetricValue(ctx context.Context, metric models.GetMetrics) (interface{}, error) {
 	switch metric.Type {
 
 	case models.MetricTypeGauge:
-		return uc.memStorage.GetMetricValueGauge(ctx, metric.Name)
+		return uc.storage.GetMetricValueGauge(ctx, metric.Name)
 
 	case models.MetricTypeCounter:
-		return uc.memStorage.GetMetricValueCounter(ctx, metric.Name)
+		return uc.storage.GetMetricValueCounter(ctx, metric.Name)
 
 	default:
 		return nil, fmt.Errorf("%w: %s", models.ErrBadMetricType, metric.Type)
@@ -63,8 +63,8 @@ func (uc *ServerUc) GetMetricValue(ctx context.Context, metric models.GetMetrics
 
 }
 
-func (uc *ServerUc) GetAllMetrics(ctx context.Context) (string, error) {
-	mapa, err := uc.memStorage.GetAllMetrics(ctx)
+func (uc *Server) GetAllMetrics(ctx context.Context) (string, error) {
+	mapa, err := uc.storage.GetAllMetrics(ctx)
 	if err != nil {
 		return "", err
 	}

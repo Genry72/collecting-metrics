@@ -1,4 +1,4 @@
-package usecases
+package agent
 
 import (
 	"fmt"
@@ -13,10 +13,6 @@ type Agent struct {
 	hostPort   string
 }
 
-type metricer interface {
-	getUrlsMetric() []string
-}
-
 func NewAgent(hostPort string) *Agent {
 	restyClient := resty.New()
 	restyClient.SetTimeout(time.Second)
@@ -27,11 +23,11 @@ func NewAgent(hostPort string) *Agent {
 }
 
 // SendMetrics Отправка метрик с заданным интервалом
-func (a *Agent) SendMetrics(metric metricer, reportInterval time.Duration) {
+func (a *Agent) SendMetrics(metric *Metrics, reportInterval time.Duration) {
 	for {
 		time.Sleep(reportInterval)
 		for _, url := range metric.getUrlsMetric() {
-			if err := a.send(url); err != nil {
+			if err := a.sendByURL(url); err != nil {
 				fmt.Println(err)
 			}
 		}
@@ -39,7 +35,7 @@ func (a *Agent) SendMetrics(metric metricer, reportInterval time.Duration) {
 	}
 }
 
-func (a *Agent) send(url string) error {
+func (a *Agent) sendByURL(url string) error {
 	resp, err := a.httpClient.R().Post(a.hostPort + url)
 	if err != nil {
 		return err
