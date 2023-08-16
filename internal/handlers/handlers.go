@@ -6,17 +6,20 @@ import (
 	"github.com/Genry72/collecting-metrics/internal/models"
 	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"log"
 	"net/http"
 )
 
 type Handler struct {
 	useCases *server.Server
+	log      *zap.Logger
 }
 
-func NewServer(uc *server.Server) *Handler {
+func NewServer(uc *server.Server, logger *zap.Logger) *Handler {
 	return &Handler{
 		useCases: uc,
+		log:      logger,
 	}
 }
 

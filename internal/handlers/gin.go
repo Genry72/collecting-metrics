@@ -6,7 +6,11 @@ import (
 
 func (h *Handler) RunServer(hostPort string) error {
 	gin.SetMode(gin.DebugMode)
+
 	g := gin.New()
+	g.Use(h.ResponseLogger())
+	g.Use(h.RequestLogger())
+
 	h.setupRoute(g)
 
 	if err := g.Run(hostPort); err != nil {

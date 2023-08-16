@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/Genry72/collecting-metrics/internal/repositories/memstorage"
 	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"github.com/gin-gonic/gin"
@@ -146,9 +147,12 @@ func TestNewServer(t *testing.T) {
 			want: nil,
 		},
 	}
+
+	zapLogger := logger.NewZapLogger("info")
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.IsTypef(t, tt.want, NewServer(tt.args.uc), "NewServer(%v)", tt.args.uc)
+			assert.IsTypef(t, tt.want, NewServer(tt.args.uc, zapLogger), "NewServer(%v)", tt.args.uc)
 		})
 	}
 }
