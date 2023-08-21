@@ -2,6 +2,7 @@ package memstorage
 
 import (
 	"context"
+	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/models"
 	"sync"
 )
@@ -22,46 +23,55 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
-func (m *MemStorage) SetMetricCounter(ctx context.Context, name models.MetricName, value int64) error {
-	m.mx.Lock()
-	defer m.mx.Unlock()
+func (m *MemStorage) SetMetric(ctx context.Context, metric *models.Metrics) (*models.Metrics, error) {
+	switch metric.MType {
+	case string(models.MetricTypeCounter):
+		m.mx.Lock()
+		m.storageCounter[models.MetricName(metric.ID)] += *metric.Delta
+		m.mx.Unlock()
+	case string(models.MetricTypeGauge):
+		m.mx.Lock()
+		m.storageGauge[models.MetricName(metric.ID)] = *metric.Value
+		m.mx.Unlock()
+	}
+	result, err := m.GetMetricValue(ctx, metric)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 
-	m.storageCounter[name] += value
-
-	return nil
 }
 
-func (m *MemStorage) SetMetricGauge(ctx context.Context, name models.MetricName, value float64) error {
-	m.mx.Lock()
-	defer m.mx.Unlock()
-
-	m.storageGauge[name] = value
-
-	return nil
-}
-
-func (m *MemStorage) GetMetricValueCounter(ctx context.Context, name models.MetricName) (int64, error) {
+func (m *MemStorage) GetMetricValue(ctx context.Context, metric *models.Metrics) (*models.Metrics, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
-
-	val, ok := m.storageCounter[name]
-	if !ok {
-		return 0, models.ErrMetricNameNotFound
+	result := &models.Metrics{
+		ID:    metric.ID,
+		MType: metric.MType,
 	}
 
-	return val, nil
-}
+	switch metric.MType {
+	case string(models.MetricTypeCounter):
+		val, ok := m.storageCounter[models.MetricName(metric.ID)]
+		if !ok {
+			return nil, models.ErrMetricNameNotFound
+		}
 
-func (m *MemStorage) GetMetricValueGauge(ctx context.Context, name models.MetricName) (float64, error) {
-	m.mx.RLock()
-	defer m.mx.RUnlock()
+		result.Delta = &val
 
-	val, ok := m.storageGauge[name]
-	if !ok {
-		return 0, models.ErrMetricNameNotFound
+	case string(models.MetricTypeGauge):
+		val, ok := m.storageGauge[models.MetricName(metric.ID)]
+		if !ok {
+			return nil, models.ErrMetricNameNotFound
+		}
+
+		result.Value = &val
+
+	default:
+		return nil, fmt.Errorf("%w: %s", models.ErrBadMetricType, metric.MType)
 	}
 
-	return val, nil
+	return result, nil
 }
 
 func (m *MemStorage) GetAllMetrics(ctx context.Context) (map[models.MetricName]interface{}, error) {

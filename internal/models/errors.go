@@ -10,4 +10,6 @@ var (
 	ErrParseValue         = errors.New("fail parse metric value")
 	ErrOnlyPost           = errors.New("only POST requests are allowed")
 	ErrFormatURL          = errors.New("only /update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ> format are allowed")
+	ErrBadBody            = errors.New("bad format body")
+	ErrBadMetricValue     = errors.New("bad metric value")
 )
