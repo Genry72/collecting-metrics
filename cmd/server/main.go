@@ -22,9 +22,9 @@ func main() {
 	}()
 
 	zapLogger.Info("start server")
-	repo := memstorage.NewMemStorage()
+	repo := memstorage.NewMemStorage(zapLogger)
 
-	uc := server.NewServerUc(repo)
+	uc := server.NewServerUc(repo, zapLogger)
 
 	h := handlers.NewServer(uc, zapLogger)
 

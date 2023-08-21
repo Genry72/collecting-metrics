@@ -25,10 +25,11 @@ func TestHandler_setMetrics(t *testing.T) {
 		method string
 		url    string
 	}
+	zapLogger := logger.NewZapLogger("info")
 
-	repo := memstorage.NewMemStorage()
+	repo := memstorage.NewMemStorage(zapLogger)
 
-	uc := server.NewServerUc(repo)
+	uc := server.NewServerUc(repo, zapLogger)
 
 	tests := []struct {
 		name   string
@@ -112,6 +113,7 @@ func TestHandler_setMetrics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := Handler{
 				useCases: tt.fields.useCases,
+				log:      zapLogger,
 			}
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(tt.args.method, tt.args.url, nil)

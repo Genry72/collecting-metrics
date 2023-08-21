@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/models"
+	"go.uber.org/zap"
 	"sync"
 )
 
@@ -11,31 +12,37 @@ type MemStorage struct {
 	mx             sync.RWMutex
 	storageCounter map[models.MetricName]int64
 	storageGauge   map[models.MetricName]float64
+	log            *zap.Logger
 }
 
-func NewMemStorage() *MemStorage {
+func NewMemStorage(log *zap.Logger) *MemStorage {
 	storageCounter := make(map[models.MetricName]int64)
 	storageGauge := make(map[models.MetricName]float64)
 
 	return &MemStorage{
 		storageCounter: storageCounter,
 		storageGauge:   storageGauge,
+		log:            log,
 	}
 }
 
 func (m *MemStorage) SetMetric(ctx context.Context, metric *models.Metrics) (*models.Metrics, error) {
+	if metric == nil {
+		return nil, models.ErrBadBody
+	}
 	switch metric.MType {
-	case string(models.MetricTypeCounter):
+	case models.MetricTypeCounter:
 		m.mx.Lock()
-		m.storageCounter[models.MetricName(metric.ID)] += *metric.Delta
+		m.storageCounter[metric.ID] += *metric.Delta
 		m.mx.Unlock()
-	case string(models.MetricTypeGauge):
+	case models.MetricTypeGauge:
 		m.mx.Lock()
-		m.storageGauge[models.MetricName(metric.ID)] = *metric.Value
+		m.storageGauge[metric.ID] = *metric.Value
 		m.mx.Unlock()
 	}
 	result, err := m.GetMetricValue(ctx, metric)
 	if err != nil {
+		m.log.Error(err.Error())
 		return nil, err
 	}
 	return result, nil
@@ -51,23 +58,26 @@ func (m *MemStorage) GetMetricValue(ctx context.Context, metric *models.Metrics)
 	}
 
 	switch metric.MType {
-	case string(models.MetricTypeCounter):
-		val, ok := m.storageCounter[models.MetricName(metric.ID)]
+	case models.MetricTypeCounter:
+		val, ok := m.storageCounter[metric.ID]
 		if !ok {
+			m.log.Error(models.ErrMetricNameNotFound.Error())
 			return nil, models.ErrMetricNameNotFound
 		}
 
 		result.Delta = &val
 
-	case string(models.MetricTypeGauge):
-		val, ok := m.storageGauge[models.MetricName(metric.ID)]
+	case models.MetricTypeGauge:
+		val, ok := m.storageGauge[metric.ID]
 		if !ok {
+			m.log.Error(models.ErrMetricNameNotFound.Error())
 			return nil, models.ErrMetricNameNotFound
 		}
 
 		result.Value = &val
 
 	default:
+		m.log.Error(models.ErrBadMetricType.Error())
 		return nil, fmt.Errorf("%w: %s", models.ErrBadMetricType, metric.MType)
 	}
 

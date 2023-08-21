@@ -58,6 +58,7 @@ func TestAgent_send(t *testing.T) {
 			a := &Agent{
 				httpClient: resty.New(),
 				hostPort:   server.URL,
+				log:        logger.NewZapLogger("info"),
 			}
 
 			if err := a.sendByURL(tt.args.url); (err != nil) != tt.wantErr {

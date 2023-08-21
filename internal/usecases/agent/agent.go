@@ -40,11 +40,14 @@ func (a *Agent) SendMetrics(metric *Metrics, reportInterval time.Duration) {
 func (a *Agent) sendByURL(url string) error {
 	resp, err := a.httpClient.R().Post(a.hostPort + url)
 	if err != nil {
+		a.log.Error(err.Error())
 		return err
 	}
 
 	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("%s :%s", resp.Status(), string(resp.Body()))
+		err = fmt.Errorf("%s :%s", resp.Status(), string(resp.Body()))
+		a.log.Error(err.Error())
+		return err
 	}
 
 	return nil

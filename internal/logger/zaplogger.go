@@ -2,22 +2,28 @@ package logger
 
 import (
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"log"
+	"os"
 )
 
 func NewZapLogger(level string) *zap.Logger {
+
+	cfg := zap.NewProductionEncoderConfig()
+	cfg.TimeKey = "time"
+	cfg.EncodeDuration = zapcore.MillisDurationEncoder
+	cfg.EncodeTime = zapcore.RFC3339TimeEncoder
+
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cfg := zap.NewProductionConfig()
-	cfg.Level = lvl
+	core := zapcore.NewCore(
+		zapcore.NewJSONEncoder(cfg),
+		zapcore.AddSync(os.Stdout),
+		lvl,
+	)
 
-	logger, err := cfg.Build()
-	if err != nil {
-		panic(err)
-	}
-
-	return logger
+	return zap.New(core).WithOptions(zap.AddCaller())
 }
