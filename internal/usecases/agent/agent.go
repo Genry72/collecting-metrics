@@ -3,7 +3,7 @@ package agent
 import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
-	"log"
+	"go.uber.org/zap"
 	"net/http"
 	"time"
 )
@@ -11,14 +11,16 @@ import (
 type Agent struct {
 	httpClient *resty.Client
 	hostPort   string
+	log        *zap.Logger
 }
 
-func NewAgent(hostPort string) *Agent {
+func NewAgent(hostPort string, log *zap.Logger) *Agent {
 	restyClient := resty.New()
 	restyClient.SetTimeout(time.Second)
 	return &Agent{
 		httpClient: restyClient,
 		hostPort:   hostPort,
+		log:        log,
 	}
 }
 
@@ -28,10 +30,10 @@ func (a *Agent) SendMetrics(metric *Metrics, reportInterval time.Duration) {
 		time.Sleep(reportInterval)
 		for _, url := range metric.getUrlsMetric() {
 			if err := a.sendByURL(url); err != nil {
-				fmt.Println(err)
+				a.log.Error(err.Error())
 			}
 		}
-		log.Println("metrics send success")
+		a.log.Info("metrics send success")
 	}
 }
 
