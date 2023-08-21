@@ -42,7 +42,7 @@ func (h *Handler) setMetricsText(c *gin.Context) {
 
 }
 
-func (h *Handler) setMetricsJson(c *gin.Context) {
+func (h *Handler) setMetricsJSON(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	metricParams := &models.Metrics{}
@@ -93,7 +93,7 @@ func (h *Handler) getMetricText(c *gin.Context) {
 	c.String(http.StatusOK, "%v", result)
 }
 
-func (h *Handler) getMetricsJson(c *gin.Context) {
+func (h *Handler) getMetricsJSON(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	metricParams := &models.Metrics{}

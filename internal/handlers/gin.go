@@ -24,10 +24,10 @@ func (h *Handler) setupRoute(g *gin.Engine) {
 	g.GET("/", h.getAllMetrics)
 
 	update := g.Group("update")
-	update.POST("/", h.setMetricsJson)
+	update.POST("/", h.setMetricsJSON)
 	update.POST("/:type/:name/:value", h.setMetricsText)
 
 	value := g.Group("value")
-	value.POST("/", h.getMetricsJson)
+	value.POST("/", h.getMetricsJSON)
 	value.GET("/:type/:name", h.getMetricText)
 }
