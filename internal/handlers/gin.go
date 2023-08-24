@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"github.com/Genry72/collecting-metrics/internal/handlers/midlware/gzip"
+	"github.com/Genry72/collecting-metrics/internal/handlers/midlware/log"
 	"github.com/gin-gonic/gin"
 )
 
@@ -8,9 +10,9 @@ func (h *Handler) RunServer(hostPort string) error {
 	gin.SetMode(gin.DebugMode)
 
 	g := gin.New()
-	g.Use(h.ResponseLogger())
-	g.Use(h.RequestLogger())
-
+	g.Use(log.ResponseLogger(h.log))
+	g.Use(log.RequestLogger(h.log))
+	g.Use(gzip.Gzip(h.log))
 	h.setupRoute(g)
 
 	if err := g.Run(hostPort); err != nil {
