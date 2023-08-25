@@ -84,17 +84,29 @@ func (m *MemStorage) GetMetricValue(ctx context.Context, metric *models.Metrics)
 	return result, nil
 }
 
-func (m *MemStorage) GetAllMetrics(ctx context.Context) (map[models.MetricName]interface{}, error) {
+func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]models.Metrics, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
-	result := make(map[models.MetricName]interface{}, len(m.storageGauge)+len(m.storageCounter))
+	result := make([]models.Metrics, 0, len(m.storageGauge)+len(m.storageCounter))
 
 	for k, v := range m.storageCounter {
-		result[k] = v
+		value := v
+		m := models.Metrics{
+			ID:    k,
+			MType: models.MetricTypeCounter,
+			Delta: &value,
+		}
+		result = append(result, m)
 	}
 
 	for k, v := range m.storageGauge {
-		result[k] = v
+		value := v
+		m := models.Metrics{
+			ID:    k,
+			MType: models.MetricTypeGauge,
+			Value: &value,
+		}
+		result = append(result, m)
 	}
 
 	if len(result) == 0 {
@@ -103,4 +115,13 @@ func (m *MemStorage) GetAllMetrics(ctx context.Context) (map[models.MetricName]i
 
 	return result, nil
 
+}
+
+func (m *MemStorage) SetAllMetrics(ctx context.Context, metrics []models.Metrics) error {
+	for i := range metrics {
+		if _, err := m.SetMetric(ctx, &metrics[i]); err != nil {
+			return fmt.Errorf("SetAllMetrics: %w", err)
+		}
+	}
+	return nil
 }

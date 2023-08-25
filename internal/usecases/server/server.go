@@ -14,14 +14,16 @@ import (
 )
 
 type Server struct {
-	storage repositories.Repositories
-	log     *zap.Logger
+	storage          repositories.Repositories
+	permanentStorage repositories.PermanentStorage // Работа с файлом
+	log              *zap.Logger
 }
 
-func NewServerUc(repo repositories.Repositories, log *zap.Logger) *Server {
+func NewServerUc(repo repositories.Repositories, permStor repositories.PermanentStorage, log *zap.Logger) *Server {
 	return &Server{
-		storage: repo,
-		log:     log,
+		storage:          repo,
+		permanentStorage: permStor,
+		log:              log,
 	}
 }
 
@@ -39,6 +41,13 @@ func (uc *Server) SetMetric(ctx context.Context, metric *models.Metrics) (*model
 		status := checkError(err)
 		return nil, status, err
 	}
+	// Загружаем в starage из файла
+	if uc.permanentStorage.GetConfig().StoreInterval == 0 {
+		if err := uc.SaveToPermanentStorage(ctx); err != nil {
+			uc.log.Error(err.Error())
+		}
+	}
+
 	return result, http.StatusOK, nil
 }
 
@@ -61,7 +70,7 @@ func (uc *Server) GetMetricValue(ctx context.Context, metric *models.Metrics) (*
 }
 
 func (uc *Server) GetAllMetrics(ctx context.Context) (string, int, error) {
-	mapa, err := uc.storage.GetAllMetrics(ctx)
+	metrics, err := uc.storage.GetAllMetrics(ctx)
 	if err != nil {
 		uc.log.Error(err.Error())
 		return "", checkError(err), err
@@ -69,8 +78,18 @@ func (uc *Server) GetAllMetrics(ctx context.Context) (string, int, error) {
 
 	sb := strings.Builder{}
 
-	for k, v := range mapa {
-		sb.WriteString(fmt.Sprintf("%s : %v\n", k, v))
+	for _, v := range metrics {
+		var value string
+		switch v.MType {
+		case models.MetricTypeCounter:
+			value = fmt.Sprint(*v.Delta)
+		case models.MetricTypeGauge:
+			value = fmt.Sprint(*v.Value)
+		default:
+			return "", http.StatusInternalServerError, fmt.Errorf("%w:%s", models.ErrMetricTypeNotFound, v.MType)
+		}
+
+		sb.WriteString(fmt.Sprintf("%s : %s\n", v.ID, value))
 	}
 
 	return sb.String(), http.StatusOK, nil

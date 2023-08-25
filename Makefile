@@ -12,6 +12,7 @@ test:
 	./metricstest -test.v -test.run=^TestIteration6  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"
 	./metricstest -test.v -test.run=^TestIteration7  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"
 	./metricstest -test.v -test.run=^TestIteration8  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"
+	./metricstest -test.v -test.run=^TestIteration9  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"  -file-storage-path="./tests.txt"
 
 .PHONY: runServer
 runServer:
