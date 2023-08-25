@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/Genry72/collecting-metrics/internal/logger"
-	"github.com/Genry72/collecting-metrics/internal/repositories/fileStorage"
+	"github.com/Genry72/collecting-metrics/internal/repositories/filestorage"
 	"github.com/Genry72/collecting-metrics/internal/repositories/memstorage"
 	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"github.com/gin-gonic/gin"
@@ -29,7 +29,7 @@ func TestHandler_setMetrics(t *testing.T) {
 	zapLogger := logger.NewZapLogger("info")
 
 	repo := memstorage.NewMemStorage(zapLogger)
-	ps := fileStorage.NewFileStorage(&fileStorage.StorageConf{
+	ps := filestorage.NewFileStorage(&filestorage.StorageConf{
 		StoreInterval:   0,
 		FileStorageFile: "./fs",
 		Restore:         false,

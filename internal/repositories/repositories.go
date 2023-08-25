@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 	"github.com/Genry72/collecting-metrics/internal/models"
-	"github.com/Genry72/collecting-metrics/internal/repositories/fileStorage"
+	"github.com/Genry72/collecting-metrics/internal/repositories/filestorage"
 )
 
 type Repositories interface {
@@ -19,5 +19,5 @@ type PermanentStorage interface {
 	Start() error
 	Stop() error
 	IsStarted() bool
-	GetConfig() *fileStorage.StorageConf
+	GetConfig() *filestorage.StorageConf
 }

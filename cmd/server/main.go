@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/Genry72/collecting-metrics/internal/handlers"
 	"github.com/Genry72/collecting-metrics/internal/logger"
-	"github.com/Genry72/collecting-metrics/internal/repositories/fileStorage"
+	"github.com/Genry72/collecting-metrics/internal/repositories/filestorage"
 	"github.com/Genry72/collecting-metrics/internal/repositories/memstorage"
 	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"os"
@@ -53,9 +53,9 @@ func main() {
 
 	repo := memstorage.NewMemStorage(zapLogger)
 
-	permStorConf := fileStorage.NewPermanentStorageConf(flagStoreInterval, flagFileStoragePath, flagRestore)
+	permStorConf := filestorage.NewPermanentStorageConf(flagStoreInterval, flagFileStoragePath, flagRestore)
 
-	permStorage := fileStorage.NewFileStorage(permStorConf, zapLogger)
+	permStorage := filestorage.NewFileStorage(permStorConf, zapLogger)
 
 	uc := server.NewServerUc(repo, permStorage, zapLogger)
 
