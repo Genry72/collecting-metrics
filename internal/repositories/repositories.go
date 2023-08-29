@@ -8,16 +8,14 @@ import (
 
 type Repositories interface {
 	SetMetric(ctx context.Context, metric *models.Metrics) (*models.Metrics, error)
-	SetAllMetrics(ctx context.Context, metrics []models.Metrics) error
-	GetMetricValue(ctx context.Context, metric *models.Metrics) (*models.Metrics, error)
-	GetAllMetrics(ctx context.Context) ([]models.Metrics, error)
+	SetAllMetrics(ctx context.Context, metrics []*models.Metrics) error
+	GetMetricValue(ctx context.Context, metricType models.MetricType, metricName models.MetricName) (*models.Metrics, error)
+	GetAllMetrics(ctx context.Context) ([]*models.Metrics, error)
 }
 
 type PermanentStorage interface {
-	SetAllMetrics(context.Context, []models.Metrics) error
-	GetAllMetrics(ctx context.Context) ([]models.Metrics, error)
-	Start() error
+	SetAllMetrics(context.Context, []*models.Metrics) error
+	GetAllMetrics(ctx context.Context) ([]*models.Metrics, error)
 	Stop() error
-	IsStarted() bool
 	GetConfig() *filestorage.StorageConf
 }

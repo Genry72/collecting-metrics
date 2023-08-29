@@ -12,6 +12,12 @@ func (uc *Server) RunSaveToPermanentStorage(ctx context.Context) {
 	// Запускаем периодическое сохранение метрик в файл
 	go func() {
 		for {
+			select {
+			case <-ctx.Done():
+				uc.log.Info("Stop RunSaveToPermanentStorage process")
+				return
+			default:
+			}
 			if err := uc.SaveToPermanentStorage(ctx); err != nil {
 				uc.log.Error(err.Error())
 				return
@@ -24,15 +30,6 @@ func (uc *Server) RunSaveToPermanentStorage(ctx context.Context) {
 
 // LoadMetricFromPermanentStore Загружаем метрики в memstorage
 func (uc *Server) LoadMetricFromPermanentStore(ctx context.Context) error {
-	if err := uc.permanentStorage.Start(); err != nil {
-		return fmt.Errorf("LoadMetricFromPermanentStore.permanentStorage.Start: %w", err)
-	}
-
-	defer func() {
-		if err := uc.permanentStorage.Stop(); err != nil {
-			uc.log.Error(err.Error())
-		}
-	}()
 
 	metrics, err := uc.permanentStorage.GetAllMetrics(ctx)
 	if err != nil {

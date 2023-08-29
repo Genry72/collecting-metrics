@@ -29,11 +29,13 @@ func TestHandler_setMetrics(t *testing.T) {
 	zapLogger := logger.NewZapLogger("info")
 
 	repo := memstorage.NewMemStorage(zapLogger)
-	ps := filestorage.NewFileStorage(&filestorage.StorageConf{
+	ps, err := filestorage.NewFileStorage(&filestorage.StorageConf{
 		StoreInterval:   0,
 		FileStorageFile: "./fs",
 		Restore:         false,
 	}, zapLogger)
+
+	assert.NoError(t, err)
 
 	uc := server.NewServerUc(repo, ps, zapLogger)
 

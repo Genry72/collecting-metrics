@@ -1,26 +1,27 @@
+port = 8080
 .PHONY: test
 test:
 	go build -o ./cmd/server/ ./cmd/server/
 	chmod +x ./cmd/server
 	go build -o ./cmd/agent/ ./cmd/agent/
 	chmod +x ./cmd/agent
-	./metricstest -test.v -test.run=^TestIteration1$$  -binary-path=cmd/server/server
-	./metricstest -test.v -test.run=^TestIteration2  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.
-	./metricstest -test.v -test.run=^TestIteration3  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.
-	./metricstest -test.v -test.run=^TestIteration4  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"
-	./metricstest -test.v -test.run=^TestIteration5  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"
-	./metricstest -test.v -test.run=^TestIteration6  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"
-	./metricstest -test.v -test.run=^TestIteration7  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"
-	./metricstest -test.v -test.run=^TestIteration8  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"
-	./metricstest -test.v -test.run=^TestIteration9  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port="8080"  -file-storage-path="./tests.txt"
+	./metricstest -test.v -test.run=^TestIteration1$$  -binary-path=cmd/server/server   -server-port=$(port)
+	./metricstest -test.v -test.run=^TestIteration2  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)
+	./metricstest -test.v -test.run=^TestIteration3  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)
+	./metricstest -test.v -test.run=^TestIteration4  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)
+	./metricstest -test.v -test.run=^TestIteration5  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)
+	./metricstest -test.v -test.run=^TestIteration6  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)
+	./metricstest -test.v -test.run=^TestIteration7  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)
+	./metricstest -test.v -test.run=^TestIteration8  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)
+	./metricstest -test.v -test.run=^TestIteration9  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"
 
 .PHONY: runServer
 runServer:
-	go run ./cmd/server -a :8080
+	go run ./cmd/server -a ":$(port)" -f "./tests.txt"
 
 .PHONY: runAgent
 runAgent:
-	go run ./cmd/agent -a :8080 -r 10 -p 2
+	go run ./cmd/agent -a ":$(port)" -r 10 -p 2
 
 .PHONY: cover
 cover:

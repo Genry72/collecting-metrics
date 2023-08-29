@@ -8,18 +8,19 @@ import (
 	"go.uber.org/zap"
 )
 
-func (fs *FileStorage) SetAllMetrics(ctx context.Context, metrics []models.Metrics) error {
-	if err := fs.Start(); err != nil {
-		return err
-	}
+func (fs *FileStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metrics) error {
 	fs.mx.Lock()
 	if err := fs.file.Truncate(0); err != nil {
 		fs.mx.Unlock()
 		return fmt.Errorf("SetAllMetrics.Truncate: %w", err)
 	}
+
 	fs.mx.Unlock()
 
 	for _, metric := range metrics {
+		if err := checkContext(ctx); err != nil {
+			return fmt.Errorf("SetAllMetrics: %w", err)
+		}
 		if err := fs.write(ctx, metric); err != nil {
 			return fmt.Errorf("SetAllMetrics: %w", err)
 		}
@@ -30,11 +31,15 @@ func (fs *FileStorage) SetAllMetrics(ctx context.Context, metrics []models.Metri
 	return nil
 }
 
-func (fs *FileStorage) write(ctx context.Context, metric models.Metrics) error {
+func (fs *FileStorage) write(ctx context.Context, metric *models.Metrics) error {
 	fs.mx.Lock()
 	defer fs.mx.Unlock()
 
-	data, err := json.Marshal(&metric)
+	if err := checkContext(ctx); err != nil {
+		return fmt.Errorf("write: %w", err)
+	}
+
+	data, err := json.Marshal(metric)
 	if err != nil {
 		return fmt.Errorf("write.Marshal: %w", err)
 	}

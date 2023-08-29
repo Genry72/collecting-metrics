@@ -10,14 +10,14 @@ import (
 
 type MemStorage struct {
 	mx             sync.RWMutex
-	storageCounter map[models.MetricName]int64
-	storageGauge   map[models.MetricName]float64
+	storageCounter map[models.MetricName]*models.Metrics
+	storageGauge   map[models.MetricName]*models.Metrics
 	log            *zap.Logger
 }
 
 func NewMemStorage(log *zap.Logger) *MemStorage {
-	storageCounter := make(map[models.MetricName]int64)
-	storageGauge := make(map[models.MetricName]float64)
+	storageCounter := make(map[models.MetricName]*models.Metrics)
+	storageGauge := make(map[models.MetricName]*models.Metrics)
 
 	return &MemStorage{
 		storageCounter: storageCounter,
@@ -30,17 +30,36 @@ func (m *MemStorage) SetMetric(ctx context.Context, metric *models.Metrics) (*mo
 	if metric == nil {
 		return nil, models.ErrBadBody
 	}
+
+	if err := checkContext(ctx); err != nil {
+		return nil, fmt.Errorf("SetMetric: %w", err)
+	}
+
 	switch metric.MType {
 	case models.MetricTypeCounter:
 		m.mx.Lock()
-		m.storageCounter[metric.ID] += *metric.Delta
+
+		_, ok := m.storageCounter[metric.ID]
+		if !ok {
+			m.storageCounter[metric.ID] = metric
+		} else {
+			*m.storageCounter[metric.ID].Delta += *metric.Delta
+		}
+
 		m.mx.Unlock()
 	case models.MetricTypeGauge:
 		m.mx.Lock()
-		m.storageGauge[metric.ID] = *metric.Value
+
+		_, ok := m.storageGauge[metric.ID]
+		if !ok {
+			m.storageGauge[metric.ID] = metric
+		} else {
+			*m.storageGauge[metric.ID].Value = *metric.Value
+		}
+
 		m.mx.Unlock()
 	}
-	result, err := m.GetMetricValue(ctx, metric)
+	result, err := m.GetMetricValue(ctx, metric.MType, metric.ID)
 	if err != nil {
 		m.log.Error(err.Error())
 		return nil, err
@@ -49,64 +68,64 @@ func (m *MemStorage) SetMetric(ctx context.Context, metric *models.Metrics) (*mo
 
 }
 
-func (m *MemStorage) GetMetricValue(ctx context.Context, metric *models.Metrics) (*models.Metrics, error) {
+func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.MetricType, metricName models.MetricName) (*models.Metrics, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
-	result := &models.Metrics{
-		ID:    metric.ID,
-		MType: metric.MType,
-	}
+	var result *models.Metrics
 
-	switch metric.MType {
+	switch metricType {
 	case models.MetricTypeCounter:
-		val, ok := m.storageCounter[metric.ID]
+		if err := checkContext(ctx); err != nil {
+			return nil, fmt.Errorf("GetMetricValue.Counter: %w", err)
+		}
+
+		val, ok := m.storageCounter[metricName]
 		if !ok {
 			m.log.Error(models.ErrMetricNameNotFound.Error())
 			return nil, models.ErrMetricNameNotFound
 		}
 
-		result.Delta = &val
+		result = val
 
 	case models.MetricTypeGauge:
-		val, ok := m.storageGauge[metric.ID]
+		if err := checkContext(ctx); err != nil {
+			return nil, fmt.Errorf("GetMetricValue.Gauge: %w", err)
+		}
+		val, ok := m.storageGauge[metricName]
 		if !ok {
 			m.log.Error(models.ErrMetricNameNotFound.Error())
 			return nil, models.ErrMetricNameNotFound
 		}
 
-		result.Value = &val
+		result = val
 
 	default:
 		m.log.Error(models.ErrBadMetricType.Error())
-		return nil, fmt.Errorf("%w: %s", models.ErrBadMetricType, metric.MType)
+		return nil, fmt.Errorf("%w: %s", models.ErrBadMetricType, metricType)
 	}
 
 	return result, nil
 }
 
-func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]models.Metrics, error) {
+func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]*models.Metrics, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
-	result := make([]models.Metrics, 0, len(m.storageGauge)+len(m.storageCounter))
+	result := make([]*models.Metrics, 0, len(m.storageGauge)+len(m.storageCounter))
 
-	for k, v := range m.storageCounter {
-		value := v
-		m := models.Metrics{
-			ID:    k,
-			MType: models.MetricTypeCounter,
-			Delta: &value,
+	for _, v := range m.storageCounter {
+		if err := checkContext(ctx); err != nil {
+			return nil, fmt.Errorf("GetAllMetrics.Counter: %w", err)
 		}
-		result = append(result, m)
+
+		result = append(result, v)
 	}
 
-	for k, v := range m.storageGauge {
-		value := v
-		m := models.Metrics{
-			ID:    k,
-			MType: models.MetricTypeGauge,
-			Value: &value,
+	for _, v := range m.storageGauge {
+		if err := checkContext(ctx); err != nil {
+			return nil, fmt.Errorf("GetAllMetrics.Gauge: %w", err)
 		}
-		result = append(result, m)
+
+		result = append(result, v)
 	}
 
 	if len(result) == 0 {
@@ -117,11 +136,20 @@ func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]models.Metrics, error
 
 }
 
-func (m *MemStorage) SetAllMetrics(ctx context.Context, metrics []models.Metrics) error {
+func (m *MemStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metrics) error {
 	for i := range metrics {
-		if _, err := m.SetMetric(ctx, &metrics[i]); err != nil {
+		if _, err := m.SetMetric(ctx, metrics[i]); err != nil {
 			return fmt.Errorf("SetAllMetrics: %w", err)
 		}
+	}
+	return nil
+}
+
+func checkContext(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return models.ErrDeadlineContext
+	default:
 	}
 	return nil
 }

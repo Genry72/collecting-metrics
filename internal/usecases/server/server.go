@@ -41,6 +41,7 @@ func (uc *Server) SetMetric(ctx context.Context, metric *models.Metrics) (*model
 		status := checkError(err)
 		return nil, status, err
 	}
+
 	// Загружаем в starage из файла
 	if uc.permanentStorage.GetConfig().StoreInterval == 0 {
 		if err := uc.SaveToPermanentStorage(ctx); err != nil {
@@ -59,7 +60,7 @@ func (uc *Server) GetMetricValue(ctx context.Context, metric *models.Metrics) (*
 		return nil, code, err
 	}
 
-	result, err := uc.storage.GetMetricValue(ctx, metric)
+	result, err := uc.storage.GetMetricValue(ctx, metric.MType, metric.ID)
 	if err != nil {
 		uc.log.Error(err.Error())
 		status := checkError(err)

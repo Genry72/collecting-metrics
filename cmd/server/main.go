@@ -7,6 +7,7 @@ import (
 	"github.com/Genry72/collecting-metrics/internal/repositories/filestorage"
 	"github.com/Genry72/collecting-metrics/internal/repositories/memstorage"
 	"github.com/Genry72/collecting-metrics/internal/usecases/server"
+	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"syscall"
@@ -51,18 +52,30 @@ func main() {
 
 	zapLogger.Info("start server")
 
+	ctxMain, mainStop := context.WithCancel(context.Background())
+
+	defer mainStop()
+
 	repo := memstorage.NewMemStorage(zapLogger)
 
 	permStorConf := filestorage.NewPermanentStorageConf(flagStoreInterval, flagFileStoragePath, flagRestore)
 
-	permStorage := filestorage.NewFileStorage(permStorConf, zapLogger)
+	permStorage, err := filestorage.NewFileStorage(permStorConf, zapLogger)
+	if err != nil {
+		zapLogger.Error("start permStorage", zap.Error(err))
+	}
+
+	defer permStorage.Stop()
+
+	zapLogger.Info("file storage success started")
 
 	uc := server.NewServerUc(repo, permStorage, zapLogger)
 
 	// Загрузка метрик из файла при старте
 	if permStorConf.Restore {
-		if err := uc.LoadMetricFromPermanentStore(context.Background()); err != nil {
-			zapLogger.Fatal(err.Error())
+		if err := uc.LoadMetricFromPermanentStore(ctxMain); err != nil {
+			zapLogger.Error(err.Error())
+			return
 		}
 	}
 
@@ -70,12 +83,12 @@ func main() {
 
 	go func() {
 		if err := h.RunServer(flagRunAddr); err != nil {
-			zapLogger.Fatal(err.Error())
+			zapLogger.Error(err.Error())
 		}
 	}()
 
 	// 	Запуск периодической отправки метрик в файл
-	uc.RunSaveToPermanentStorage(context.Background())
+	uc.RunSaveToPermanentStorage(ctxMain)
 
 	// Graceful shutdown block
 	quit := make(chan os.Signal, 1)
@@ -86,12 +99,18 @@ func main() {
 
 	zapLogger.Info("Graceful shutdown")
 
-	ctx, shutdown := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, shutdown := context.WithTimeout(ctxMain, 5*time.Second)
 
-	defer shutdown()
+	defer func() {
+		mainStop()
+
+		shutdown()
+
+		zapLogger.Info("Success graceful shutdown")
+	}()
 
 	if err := uc.SaveToPermanentStorage(ctx); err != nil {
 		zapLogger.Error(err.Error())
+		return
 	}
-	zapLogger.Info("Success graceful shutdown")
 }
