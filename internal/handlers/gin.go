@@ -7,7 +7,7 @@ import (
 )
 
 func (h *Handler) RunServer(hostPort string) error {
-	gin.SetMode(gin.DebugMode)
+	gin.SetMode(gin.ReleaseMode)
 
 	g := gin.New()
 	g.Use(log.ResponseLogger(h.log))

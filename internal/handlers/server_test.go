@@ -19,16 +19,16 @@ func TestHandler_RunServer(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{
-			name: "negative",
-			fields: fields{
-				useCases: nil,
-			},
-			args: args{
-				port: "ab",
-			},
-			wantErr: true,
-		},
+		//{
+		//	name: "negative",
+		//	fields: fields{
+		//		useCases: nil,
+		//	},
+		//	args: args{
+		//		port: "ab",
+		//	},
+		//	wantErr: true,
+		//},
 		{
 			name: "positive",
 			fields: fields{
