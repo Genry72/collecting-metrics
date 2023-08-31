@@ -19,3 +19,8 @@ type PermanentStorage interface {
 	Stop() error
 	GetConfig() *filestorage.StorageConf
 }
+
+type DatabaseStorage interface {
+	Ping() error
+	Stop()
+}

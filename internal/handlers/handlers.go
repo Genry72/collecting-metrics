@@ -137,3 +137,16 @@ func (h *Handler) getAllMetrics(c *gin.Context) {
 
 	c.String(status, "%v", val)
 }
+
+func (h *Handler) pingDatabase(c *gin.Context) {
+
+	c.Header("Content-Type", "text/html")
+
+	if err := h.useCases.PingDataBase(); err != nil {
+		h.log.Error(err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.String(http.StatusOK, "database connected")
+}

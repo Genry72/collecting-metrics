@@ -6,6 +6,7 @@ import (
 	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/Genry72/collecting-metrics/internal/repositories/filestorage"
 	"github.com/Genry72/collecting-metrics/internal/repositories/memstorage"
+	"github.com/Genry72/collecting-metrics/internal/repositories/postgre"
 	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"go.uber.org/zap"
 	"os"
@@ -19,6 +20,7 @@ var (
 	flagStoreInterval   int
 	flagFileStoragePath string
 	flagRestore         bool
+	flagPgDsn           string
 )
 
 const (
@@ -38,6 +40,8 @@ const (
 		из указанного файла при старте сервера (по умолчанию true)
 	*/
 	envRestore = "RESTORE"
+	// Строка с адресом подключения к БД
+	envPgDSN = "DATABASE_DSN"
 )
 
 func main() {
@@ -69,7 +73,15 @@ func main() {
 
 	zapLogger.Info("file storage success started")
 
-	uc := server.NewServerUc(repo, permStorage, zapLogger)
+	pg, err := postgre.NewPGStorage(flagPgDsn, zapLogger)
+	if err != nil {
+		zapLogger.Error("connect database", zap.Error(err))
+	} else {
+		zapLogger.Info("connect to db success")
+		defer pg.Stop()
+	}
+
+	uc := server.NewServerUc(repo, permStorage, pg, zapLogger)
 
 	// Загрузка метрик из файла при старте
 	if permStorConf.Restore {

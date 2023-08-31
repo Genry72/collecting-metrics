@@ -16,13 +16,15 @@ import (
 type Server struct {
 	storage          repositories.Repositories
 	permanentStorage repositories.PermanentStorage // Работа с файлом
+	database         repositories.DatabaseStorage  // Работа с базой данных
 	log              *zap.Logger
 }
 
-func NewServerUc(repo repositories.Repositories, permStor repositories.PermanentStorage, log *zap.Logger) *Server {
+func NewServerUc(repo repositories.Repositories, permStor repositories.PermanentStorage, database repositories.DatabaseStorage, log *zap.Logger) *Server {
 	return &Server{
 		storage:          repo,
 		permanentStorage: permStor,
+		database:         database,
 		log:              log,
 	}
 }

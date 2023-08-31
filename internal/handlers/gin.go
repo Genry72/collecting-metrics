@@ -24,6 +24,7 @@ func (h *Handler) RunServer(hostPort string) error {
 
 func (h *Handler) setupRoute(g *gin.Engine) {
 	g.GET("/", h.getAllMetrics)
+	g.GET("/ping", h.pingDatabase)
 
 	update := g.Group("update")
 	update.POST("/", h.setMetricsJSON)

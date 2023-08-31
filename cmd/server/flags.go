@@ -21,6 +21,9 @@ func parseFlags() {
 	flag.BoolVar(&flagRestore, "r", true, "булево значение (true/false), определяющее, загружать или"+
 		" нет ранее сохранённые значения из указанного файла при старте сервера (по умолчанию true)")
 
+	flag.StringVar(&flagPgDsn, "d", "", "булево значение (true/false), определяющее, загружать или"+
+		" нет ранее сохранённые значения из указанного файла при старте сервера (по умолчанию true)")
+
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
 
@@ -46,5 +49,9 @@ func parseFlags() {
 			log.Fatal(err)
 		}
 		flagRestore = v
+	}
+
+	if value := os.Getenv(envPgDSN); value != "" {
+		flagPgDsn = value
 	}
 }

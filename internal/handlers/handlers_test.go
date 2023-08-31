@@ -4,6 +4,7 @@ import (
 	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/Genry72/collecting-metrics/internal/repositories/filestorage"
 	"github.com/Genry72/collecting-metrics/internal/repositories/memstorage"
+	"github.com/Genry72/collecting-metrics/internal/repositories/postgre"
 	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +38,12 @@ func TestHandler_setMetrics(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	uc := server.NewServerUc(repo, ps, zapLogger)
+	dsn := "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable"
+
+	pg, err := postgre.NewPGStorage(dsn, zapLogger)
+	assert.NoError(t, err)
+
+	uc := server.NewServerUc(repo, ps, pg, zapLogger)
 
 	tests := []struct {
 		name   string
