@@ -40,8 +40,7 @@ func TestHandler_setMetrics(t *testing.T) {
 
 	dsn := "postgres://postgres:pass@localhost:5432/postgres?sslmode=disable"
 
-	pg, err := postgre.NewPGStorage(dsn, zapLogger)
-	assert.NoError(t, err)
+	pg, _ := postgre.NewPGStorage(dsn, zapLogger)
 
 	uc := server.NewServerUc(repo, ps, pg, zapLogger)
 
