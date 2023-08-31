@@ -131,8 +131,8 @@ func TestHandler_setMetrics(t *testing.T) {
 			}
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(tt.args.method, tt.args.url, nil)
-			//h.setMetricsText(w, r)
-			g := gin.Default()
+			gin.SetMode(gin.ReleaseMode)
+			g := gin.New()
 			h.setupRoute(g)
 			g.ServeHTTP(w, r)
 			//res := w.Result()
