@@ -3,12 +3,19 @@ package repositories
 import (
 	"context"
 	"github.com/Genry72/collecting-metrics/internal/models"
+	"github.com/Genry72/collecting-metrics/internal/repositories/filestorage"
 )
 
 type Repositories interface {
-	SetMetricCounter(ctx context.Context, name models.MetricName, value int64) error
-	SetMetricGauge(ctx context.Context, name models.MetricName, value float64) error
-	GetMetricValueCounter(ctx context.Context, name models.MetricName) (int64, error)
-	GetMetricValueGauge(ctx context.Context, name models.MetricName) (float64, error)
-	GetAllMetrics(ctx context.Context) (map[models.MetricName]interface{}, error)
+	SetMetric(ctx context.Context, metric *models.Metrics) (*models.Metrics, error)
+	SetAllMetrics(ctx context.Context, metrics []*models.Metrics) error
+	GetMetricValue(ctx context.Context, metricType models.MetricType, metricName models.MetricName) (*models.Metrics, error)
+	GetAllMetrics(ctx context.Context) ([]*models.Metrics, error)
+}
+
+type PermanentStorage interface {
+	SetAllMetrics(context.Context, []*models.Metrics) error
+	GetAllMetrics(ctx context.Context) ([]*models.Metrics, error)
+	Stop() error
+	GetConfig() *filestorage.StorageConf
 }

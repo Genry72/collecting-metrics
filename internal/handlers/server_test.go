@@ -1,14 +1,14 @@
 package handlers
 
 import (
-	"github.com/Genry72/collecting-metrics/internal/usecases"
+	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func TestHandler_RunServer(t *testing.T) {
 	type fields struct {
-		useCases *usecases.ServerUc
+		useCases *server.Server
 	}
 	type args struct {
 		port string

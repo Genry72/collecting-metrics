@@ -1,9 +1,9 @@
-package usecases
+package agent
 
 import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
-	"log"
+	"go.uber.org/zap"
 	"net/http"
 	"time"
 )
@@ -11,42 +11,43 @@ import (
 type Agent struct {
 	httpClient *resty.Client
 	hostPort   string
+	log        *zap.Logger
 }
 
-type metricer interface {
-	getUrlsMetric() []string
-}
-
-func NewAgent(hostPort string) *Agent {
+func NewAgent(hostPort string, log *zap.Logger) *Agent {
 	restyClient := resty.New()
 	restyClient.SetTimeout(time.Second)
 	return &Agent{
 		httpClient: restyClient,
 		hostPort:   hostPort,
+		log:        log,
 	}
 }
 
 // SendMetrics Отправка метрик с заданным интервалом
-func (a *Agent) SendMetrics(metric metricer, reportInterval time.Duration) {
+func (a *Agent) SendMetrics(metric *Metrics, reportInterval time.Duration) {
 	for {
 		time.Sleep(reportInterval)
 		for _, url := range metric.getUrlsMetric() {
-			if err := a.send(url); err != nil {
-				fmt.Println(err)
+			if err := a.sendByURL(url); err != nil {
+				a.log.Error(err.Error())
 			}
 		}
-		log.Println("metrics send success")
+		a.log.Info("metrics send success")
 	}
 }
 
-func (a *Agent) send(url string) error {
+func (a *Agent) sendByURL(url string) error {
 	resp, err := a.httpClient.R().Post(a.hostPort + url)
 	if err != nil {
+		a.log.Error(err.Error())
 		return err
 	}
 
 	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("%s :%s", resp.Status(), string(resp.Body()))
+		err = fmt.Errorf("%s :%s", resp.Status(), string(resp.Body()))
+		a.log.Error(err.Error())
+		return err
 	}
 
 	return nil

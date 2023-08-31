@@ -1,60 +1,126 @@
 package handlers
 
 import (
-	"errors"
-	"fmt"
+	"encoding/json"
 	"github.com/Genry72/collecting-metrics/internal/models"
-	"github.com/Genry72/collecting-metrics/internal/usecases"
+	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"github.com/gin-gonic/gin"
-	"log"
+	"go.uber.org/zap"
 	"net/http"
 )
 
 type Handler struct {
-	useCases *usecases.ServerUc
+	useCases *server.Server
+	log      *zap.Logger
 }
 
-func NewServer(uc *usecases.ServerUc) *Handler {
+func NewServer(uc *server.Server, logger *zap.Logger) *Handler {
 	return &Handler{
 		useCases: uc,
+		log:      logger,
 	}
 }
 
-func (h *Handler) setMetrics(c *gin.Context) {
+func (h *Handler) setMetricsText(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var metric models.UpdateMetrics
-	if err := c.ShouldBindUri(&metric); err != nil {
+	metricParams := &models.Metrics{}
+	if err := c.ShouldBindUri(metricParams); err != nil {
+		h.log.Error(err.Error())
 		c.String(http.StatusBadRequest, "%v: %v", err, models.ErrFormatURL)
 		return
 	}
 
-	if err := h.useCases.SetMetric(ctx, &metric); err != nil {
-		status := checkError(err)
+	_, status, err := h.useCases.SetMetric(ctx, metricParams)
+	if err != nil {
+		h.log.Error(err.Error())
 		c.String(status, err.Error())
 		return
 	}
+
+	c.String(status, "set metric success")
+
 }
 
-func (h *Handler) getMetricValue(c *gin.Context) {
+func (h *Handler) setMetricsJSON(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var metric models.GetMetrics
+	metricParams := &models.Metrics{}
 
-	if err := c.ShouldBindUri(&metric); err != nil {
-		c.String(http.StatusBadRequest, "%v", err)
-		log.Println(err)
+	if err := c.ShouldBindJSON(metricParams); err != nil {
+		h.log.Error(err.Error())
+		c.String(http.StatusBadRequest, models.ErrBadBody.Error())
 		return
 	}
 
-	val, err := h.useCases.GetMetricValue(ctx, metric)
+	result, status, err := h.useCases.SetMetric(ctx, metricParams)
 	if err != nil {
-		status := checkError(err)
+		h.log.Error(err.Error())
+		c.JSON(status, err.Error())
+		return
+	}
+
+	c.JSON(status, result)
+}
+
+func (h *Handler) getMetricText(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	metricParams := &models.Metrics{}
+
+	if err := c.ShouldBindUri(metricParams); err != nil {
+		h.log.Error(err.Error())
+		c.String(http.StatusBadRequest, "%v", err)
+		return
+	}
+
+	val, status, err := h.useCases.GetMetricValue(ctx, metricParams)
+	if err != nil {
+		h.log.Error(err.Error())
 		c.String(status, err.Error())
 		return
 	}
 
-	c.String(http.StatusOK, "%v", val)
+	var result interface{}
+
+	switch metricParams.MType {
+	case models.MetricTypeCounter:
+		result = *val.Delta
+	case models.MetricTypeGauge:
+		result = *val.Value
+
+	}
+	c.String(http.StatusOK, "%v", result)
+}
+
+func (h *Handler) getMetricsJSON(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	metricParams := &models.Metrics{}
+
+	if err := c.ShouldBindJSON(metricParams); err != nil {
+		h.log.Error(err.Error())
+		c.String(http.StatusBadRequest, models.ErrBadBody.Error())
+		return
+	}
+
+	val, status, err := h.useCases.GetMetricValue(ctx, metricParams)
+	if err != nil {
+		h.log.Error(err.Error())
+		c.String(status, err.Error())
+		return
+	}
+
+	valByte, err := json.Marshal(val)
+	if err != nil {
+		h.log.Error(err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.Header("Content-Type", "application/json")
+
+	c.String(status, string(valByte))
 }
 
 func (h *Handler) getAllMetrics(c *gin.Context) {
@@ -62,31 +128,12 @@ func (h *Handler) getAllMetrics(c *gin.Context) {
 
 	c.Header("Content-Type", "text/html")
 
-	val, err := h.useCases.GetAllMetrics(ctx)
-
+	val, status, err := h.useCases.GetAllMetrics(ctx)
 	if err != nil {
-		status := checkError(err)
-
+		h.log.Error(err.Error())
 		c.String(status, err.Error())
-
-		fmt.Println(err, c.Request.URL)
-
 		return
 	}
 
-	c.String(http.StatusOK, "%v", val)
-}
-
-func checkError(err error) int {
-	var status int
-
-	switch {
-	case errors.Is(err, models.ErrBadMetricType) || errors.Is(err, models.ErrParseValue):
-		status = http.StatusBadRequest
-	case errors.Is(err, models.ErrMetricTypeNotFound) || errors.Is(err, models.ErrMetricNameNotFound):
-		status = http.StatusNotFound
-	default:
-		status = http.StatusInternalServerError
-	}
-	return status
+	c.String(status, "%v", val)
 }

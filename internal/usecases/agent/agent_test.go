@@ -1,6 +1,7 @@
-package usecases
+package agent
 
 import (
+	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/require"
 	"net/http"
@@ -57,10 +58,11 @@ func TestAgent_send(t *testing.T) {
 			a := &Agent{
 				httpClient: resty.New(),
 				hostPort:   server.URL,
+				log:        logger.NewZapLogger("info"),
 			}
 
-			if err := a.send(tt.args.url); (err != nil) != tt.wantErr {
-				t.Errorf("send() error = %v, wantErr %v", err, tt.wantErr)
+			if err := a.sendByURL(tt.args.url); (err != nil) != tt.wantErr {
+				t.Errorf("sendByURL() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 		})
@@ -71,6 +73,7 @@ func TestNewAgent(t *testing.T) {
 	type args struct {
 		hostPort string
 	}
+	zapLogger := logger.NewZapLogger("info")
 	tests := []struct {
 		name string
 		args args
@@ -86,7 +89,7 @@ func TestNewAgent(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewAgent(tt.args.hostPort); !reflect.DeepEqual(got, tt.want) {
+			if got := NewAgent(tt.args.hostPort, zapLogger); !reflect.DeepEqual(got, tt.want) {
 				require.IsType(t, &Agent{}, got)
 			}
 		})

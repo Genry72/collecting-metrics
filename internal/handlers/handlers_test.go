@@ -1,8 +1,10 @@
 package handlers
 
 import (
-	"github.com/Genry72/collecting-metrics/internal/repositories"
-	"github.com/Genry72/collecting-metrics/internal/usecases"
+	"github.com/Genry72/collecting-metrics/internal/logger"
+	"github.com/Genry72/collecting-metrics/internal/repositories/filestorage"
+	"github.com/Genry72/collecting-metrics/internal/repositories/memstorage"
+	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -17,17 +19,25 @@ func TestHandler_setMetrics(t *testing.T) {
 	}
 
 	type fields struct {
-		useCases *usecases.ServerUc
+		useCases *server.Server
 	}
 
 	type args struct {
 		method string
 		url    string
 	}
+	zapLogger := logger.NewZapLogger("info")
 
-	repo := repositories.NewMemStorage()
+	repo := memstorage.NewMemStorage(zapLogger)
+	ps, err := filestorage.NewFileStorage(&filestorage.StorageConf{
+		StoreInterval:   0,
+		FileStorageFile: "./fs",
+		Restore:         false,
+	}, zapLogger)
 
-	uc := usecases.NewServerUc(repo)
+	assert.NoError(t, err)
+
+	uc := server.NewServerUc(repo, ps, zapLogger)
 
 	tests := []struct {
 		name   string
@@ -111,10 +121,11 @@ func TestHandler_setMetrics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := Handler{
 				useCases: tt.fields.useCases,
+				log:      zapLogger,
 			}
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(tt.args.method, tt.args.url, nil)
-			//h.setMetrics(w, r)
+			//h.setMetricsText(w, r)
 			g := gin.Default()
 			h.setupRoute(g)
 			g.ServeHTTP(w, r)
@@ -131,7 +142,7 @@ func TestHandler_setMetrics(t *testing.T) {
 
 func TestNewServer(t *testing.T) {
 	type args struct {
-		uc *usecases.ServerUc
+		uc *server.Server
 	}
 	tests := []struct {
 		name string
@@ -141,14 +152,17 @@ func TestNewServer(t *testing.T) {
 		{
 			name: "positive",
 			args: args{
-				uc: &usecases.ServerUc{},
+				uc: &server.Server{},
 			},
 			want: nil,
 		},
 	}
+
+	zapLogger := logger.NewZapLogger("info")
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.IsTypef(t, tt.want, NewServer(tt.args.uc), "NewServer(%v)", tt.args.uc)
+			assert.IsTypef(t, tt.want, NewServer(tt.args.uc, zapLogger), "NewServer(%v)", tt.args.uc)
 		})
 	}
 }
