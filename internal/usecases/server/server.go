@@ -45,7 +45,7 @@ func (uc *Server) SetMetric(ctx context.Context, metric *models.Metrics) (*model
 	}
 
 	// Загружаем в starage из файла
-	if uc.permanentStorage.GetConfig().StoreInterval == 0 {
+	if uc.permanentStorage.GetConfig().StoreInterval == 0 && uc.permanentStorage.GetConfig().Enabled {
 		if err := uc.SaveToPermanentStorage(ctx); err != nil {
 			uc.log.Error(err.Error())
 		}

@@ -23,6 +23,7 @@ type StorageConf struct {
 	StoreInterval   int
 	FileStorageFile string
 	Restore         bool
+	Enabled         bool // Флаг, указывающий, нужно ли сохранять метрики в storage
 }
 
 func NewPermanentStorageConf(storeInterval int, fileStorageFile string, restore bool) *StorageConf {
@@ -30,6 +31,7 @@ func NewPermanentStorageConf(storeInterval int, fileStorageFile string, restore 
 		StoreInterval:   storeInterval,
 		FileStorageFile: fileStorageFile,
 		Restore:         restore,
+		Enabled:         true,
 	}
 }
 
@@ -53,18 +55,18 @@ func (fs *FileStorage) GetConfig() *StorageConf {
 	return fs.conf
 }
 
-func (fs *FileStorage) Stop() error {
+func (fs *FileStorage) Stop() {
 
 	fs.mx.Lock()
 	defer fs.mx.Unlock()
 
 	if err := fs.file.Close(); err != nil {
 		fs.log.Error("FileStorage stop", zap.Error(err))
-		return err
+		return
 	}
 
 	fs.log.Info("file storage success stopped")
-	return nil
+	return
 }
 
 func checkContext(ctx context.Context) error {

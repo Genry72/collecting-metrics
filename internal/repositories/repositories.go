@@ -16,7 +16,7 @@ type Repositories interface {
 type PermanentStorage interface {
 	SetAllMetrics(context.Context, []*models.Metrics) error
 	GetAllMetrics(ctx context.Context) ([]*models.Metrics, error)
-	Stop() error
+	Stop()
 	GetConfig() *filestorage.StorageConf
 }
 

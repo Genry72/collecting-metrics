@@ -9,6 +9,9 @@ import (
 
 func (uc *Server) RunSaveToPermanentStorage(ctx context.Context) {
 	fsconf := uc.permanentStorage.GetConfig()
+	if !fsconf.Enabled {
+		return
+	}
 	// Запускаем периодическое сохранение метрик в файл
 	go func() {
 		for {
@@ -46,6 +49,10 @@ func (uc *Server) LoadMetricFromPermanentStore(ctx context.Context) error {
 }
 
 func (uc *Server) SaveToPermanentStorage(ctx context.Context) error {
+	if !uc.permanentStorage.GetConfig().Enabled {
+		return nil
+	}
+
 	metrics, err := uc.storage.GetAllMetrics(ctx)
 	if err != nil {
 		return fmt.Errorf("saveToPermanentStorage.GetAllMetrics: %w", err)

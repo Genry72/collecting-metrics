@@ -60,35 +60,41 @@ func main() {
 
 	defer mainStop()
 
-	repo := memstorage.NewMemStorage(zapLogger)
-
-	permStorConf := filestorage.NewPermanentStorageConf(flagStoreInterval, flagFileStoragePath, flagRestore)
-
-	permStorage, err := filestorage.NewFileStorage(permStorConf, zapLogger)
+	databaseStorage, err := postgre.NewPGStorage(flagPgDsn, zapLogger)
 	if err != nil {
-		zapLogger.Error("start permStorage", zap.Error(err))
-	}
-
-	defer permStorage.Stop()
-
-	zapLogger.Info("file storage success started")
-
-	pg, err := postgre.NewPGStorage(flagPgDsn, zapLogger)
-	if err != nil {
-		zapLogger.Error("connect database", zap.Error(err))
+		zapLogger.Error("connect databaseStorage", zap.Error(err))
 	} else {
 		zapLogger.Info("connect to db success")
-		defer pg.Stop()
+		defer databaseStorage.Stop()
 	}
 
-	uc := server.NewServerUc(repo, permStorage, pg, zapLogger)
+	var uc *server.Server
 
-	// Загрузка метрик из файла при старте
-	if permStorConf.Restore {
-		if err := uc.LoadMetricFromPermanentStore(ctxMain); err != nil {
-			zapLogger.Error(err.Error())
-			return
+	if databaseStorage == nil {
+		memStorage := memstorage.NewMemStorage(zapLogger)
+
+		permStorConf := filestorage.NewPermanentStorageConf(flagStoreInterval, flagFileStoragePath, flagRestore)
+
+		fileStorage, err := filestorage.NewFileStorage(permStorConf, zapLogger)
+		if err != nil {
+			zapLogger.Error("start fileStorage", zap.Error(err))
+		} else {
+			zapLogger.Info("file storage success started")
+			defer fileStorage.Stop()
 		}
+
+		uc = server.NewServerUc(memStorage, fileStorage, databaseStorage, zapLogger)
+
+		// Загрузка метрик из файла при старте
+		if permStorConf.Restore {
+			if err := uc.LoadMetricFromPermanentStore(ctxMain); err != nil {
+				zapLogger.Error(err.Error())
+				return
+			}
+		}
+
+	} else {
+		uc = server.NewServerUc(databaseStorage, databaseStorage, databaseStorage, zapLogger)
 	}
 
 	h := handlers.NewServer(uc, zapLogger)
