@@ -66,7 +66,7 @@ func (fs *FileStorage) Stop() {
 	}
 
 	fs.log.Info("file storage success stopped")
-	return
+
 }
 
 func checkContext(ctx context.Context) error {
