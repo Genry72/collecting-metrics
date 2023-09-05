@@ -38,7 +38,7 @@ func (a *Agent) SendMetrics(metric *Metrics, reportInterval time.Duration) {
 		//		a.log.Error(err.Error())
 		//	}
 		//}
-		if err := a.sendByJsonBatch(metrics); err != nil {
+		if err := a.sendByJSONBatch(metrics); err != nil {
 			a.log.Error(err.Error())
 		}
 		a.log.Info("metrics send success")
@@ -73,7 +73,7 @@ func (a *Agent) sendByURL(metric *models.Metric) error {
 	return nil
 }
 
-func (a *Agent) sendByJsonBatch(metric []*models.Metric) error {
+func (a *Agent) sendByJSONBatch(metric []*models.Metric) error {
 	url := "/updates"
 	resp, err := a.httpClient.R().SetBody(metric).Post(a.hostPort + url)
 	if err != nil {
