@@ -62,7 +62,7 @@ func (pg *PGStorage) migrate() error {
 	}
 
 	defer func() {
-		if err := tx.Rollback(); err != nil {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 			pg.log.Error("migrate.Rollback", zap.Error(err))
 		}
 	}()
@@ -80,26 +80,9 @@ func (pg *PGStorage) migrate() error {
 	return nil
 }
 
-func (pg *PGStorage) SetMetric(ctx context.Context, metric *models.Metric) (*models.Metric, error) {
-	if err := checkMetricType(metric.MType); err != nil {
-		return nil, err
-	}
+func (pg *PGStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) ([]*models.Metric, error) {
 
-	if metric.MType == models.MetricTypeCounter {
-		oldMetric, err := pg.GetMetricValue(ctx, metric.MType, metric.ID)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("SetMetric: %w", err)
-		}
-
-		oldValue := int64(0)
-
-		if oldMetric != nil {
-			oldValue = *oldMetric.Delta
-		}
-
-		v := oldValue + *metric.Delta
-		metric.Delta = &v
-	}
+	result := make([]*models.Metric, 0, len(metrics))
 
 	query := `
 INSERT INTO metrics (name,
@@ -121,15 +104,69 @@ RETURNING
     delta,
     value
 `
-
-	result := models.Metric{}
-
-	row := pg.conn.QueryRowxContext(ctx, query, metric.ID, metric.MType, metric.Delta, metric.Value)
-	if err := row.StructScan(&result); err != nil {
-		return nil, fmt.Errorf("SetMetric.QueryRowxContext: %w", err)
+	tx, err := pg.conn.Beginx()
+	if err != nil {
+		return nil, fmt.Errorf("SetMetric.Begin: %w", err)
 	}
 
-	return &result, nil
+	stmt, err := tx.PreparexContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("SetMetric.PreparexContext: %w", err)
+	}
+
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			pg.log.Error("tx.Rollback()", zap.Error(err))
+		}
+		if err := stmt.Close(); err != nil {
+			pg.log.Error("stmt.Close", zap.Error(err))
+		}
+	}()
+
+	for i := range metrics {
+		metric := metrics[i]
+
+		if err := checkMetricType(metric.MType); err != nil {
+			return nil, err
+		}
+
+		if metric.MType == models.MetricTypeCounter {
+			oldMetric, err := pg.GetMetricValue(ctx, metric.MType, metric.ID)
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+				return nil, fmt.Errorf("SetMetric: %w", err)
+			}
+
+			oldValue := int64(0)
+
+			if oldMetric != nil {
+				oldValue = *oldMetric.Delta
+			}
+
+			v := oldValue + *metric.Delta
+			metric.Delta = &v
+		}
+
+		var m models.Metric
+
+		row := stmt.QueryRowxContext(ctx, metric.ID, metric.MType, metric.Delta, metric.Value)
+
+		if err := row.StructScan(&m); err != nil {
+			fmt.Printf("%+v\n", *metric.Delta)
+			return nil, fmt.Errorf("row.StructScan: %w", err)
+		}
+
+		if err := row.Err(); err != nil {
+			return nil, err
+		}
+
+		result = append(result, &m)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("SetMetric.Commit: %w", err)
+	}
+
+	return result, nil
 }
 
 func (pg *PGStorage) GetMetricValue(ctx context.Context,

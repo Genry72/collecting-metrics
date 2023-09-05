@@ -26,44 +26,48 @@ func NewMemStorage(log *zap.Logger) *MemStorage {
 	}
 }
 
-func (m *MemStorage) SetMetric(ctx context.Context, metric *models.Metric) (*models.Metric, error) {
-	if metric == nil {
-		return nil, models.ErrBadBody
-	}
+func (m *MemStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) ([]*models.Metric, error) {
+	result := make([]*models.Metric, 0, len(metrics))
 
-	if err := checkContext(ctx); err != nil {
-		return nil, fmt.Errorf("SetMetric: %w", err)
-	}
+	for i := range metrics {
+		metric := metrics[i]
 
-	switch metric.MType {
-	case models.MetricTypeCounter:
-		m.mx.Lock()
-
-		_, ok := m.storageCounter[metric.ID]
-		if !ok {
-			m.storageCounter[metric.ID] = metric
-		} else {
-			*m.storageCounter[metric.ID].Delta += *metric.Delta
+		if err := checkContext(ctx); err != nil {
+			return nil, fmt.Errorf("SetMetric: %w", err)
 		}
 
-		m.mx.Unlock()
-	case models.MetricTypeGauge:
-		m.mx.Lock()
+		switch metric.MType {
+		case models.MetricTypeCounter:
+			m.mx.Lock()
 
-		_, ok := m.storageGauge[metric.ID]
-		if !ok {
-			m.storageGauge[metric.ID] = metric
-		} else {
-			*m.storageGauge[metric.ID].Value = *metric.Value
+			_, ok := m.storageCounter[metric.ID]
+			if !ok {
+				m.storageCounter[metric.ID] = metric
+			} else {
+				*m.storageCounter[metric.ID].Delta += *metric.Delta
+			}
+
+			m.mx.Unlock()
+		case models.MetricTypeGauge:
+			m.mx.Lock()
+
+			_, ok := m.storageGauge[metric.ID]
+			if !ok {
+				m.storageGauge[metric.ID] = metric
+			} else {
+				*m.storageGauge[metric.ID].Value = *metric.Value
+			}
+
+			m.mx.Unlock()
 		}
+		mm, err := m.GetMetricValue(ctx, metric.MType, metric.ID)
+		if err != nil {
+			m.log.Error(err.Error())
+			return nil, err
+		}
+		result = append(result, mm)
+	}
 
-		m.mx.Unlock()
-	}
-	result, err := m.GetMetricValue(ctx, metric.MType, metric.ID)
-	if err != nil {
-		m.log.Error(err.Error())
-		return nil, err
-	}
 	return result, nil
 
 }

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"github.com/Genry72/collecting-metrics/internal/logger"
+	"github.com/Genry72/collecting-metrics/internal/models"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/require"
 	"net/http"
@@ -12,10 +13,11 @@ import (
 
 func TestAgent_send(t *testing.T) {
 	type args struct {
+		metric       *models.Metric
 		url          string
 		responseCode int
 	}
-
+	value := float64(5)
 	tests := []struct {
 		name    string
 		args    args
@@ -24,9 +26,17 @@ func TestAgent_send(t *testing.T) {
 		{
 			name: "positive#1",
 			args: args{
-				url:          "/some/path",
+				url:          "/update/gauge/testmetric/5",
 				responseCode: http.StatusOK,
+				metric: &models.Metric{
+					ID:        "testmetric",
+					MType:     "gauge",
+					Delta:     nil,
+					Value:     &value,
+					ValueText: "",
+				},
 			},
+
 			wantErr: false,
 		},
 		{
@@ -43,7 +53,7 @@ func TestAgent_send(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 				// Test request parameters
-				require.Equal(t, req.URL.String(), tt.args.url)
+				require.Equal(t, tt.args.url, req.URL.String())
 
 				// Send response to be tested
 				rw.WriteHeader(tt.args.responseCode)
@@ -61,7 +71,7 @@ func TestAgent_send(t *testing.T) {
 				log:        logger.NewZapLogger("info"),
 			}
 
-			if err := a.sendByURL(tt.args.url); (err != nil) != tt.wantErr {
+			if err := a.sendByURL(tt.args.metric); (err != nil) != tt.wantErr {
 				t.Errorf("sendByURL() error = %v, wantErr %v", err, tt.wantErr)
 			}
 

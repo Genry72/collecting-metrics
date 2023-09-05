@@ -27,8 +27,11 @@ func (h *Handler) setupRoute(g *gin.Engine) {
 	g.GET("/ping", h.pingDatabase)
 
 	update := g.Group("update")
-	update.POST("/", h.setMetricsJSON)
+	update.POST("/", h.setMetricJSON)
 	update.POST("/:type/:name/:value", h.setMetricsText)
+
+	updates := g.Group("updates")
+	updates.POST("/", h.setMetricsJSON)
 
 	value := g.Group("value")
 	value.POST("/", h.getMetricsJSON)

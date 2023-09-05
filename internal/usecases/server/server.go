@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/models"
@@ -29,25 +30,31 @@ func NewServerUc(repo repositories.Repositories, permStor repositories.Permanent
 	}
 }
 
-func (uc *Server) SetMetric(ctx context.Context, metric *models.Metric) (*models.Metric, int, error) {
+func (uc *Server) SetMetric(ctx context.Context, metrics ...*models.Metric) ([]*models.Metric, int, error) {
+	result := make([]*models.Metric, 0, len(metrics))
 
-	code, err := checkMetricParams(metric, true)
-	if err != nil {
-		uc.log.Error(err.Error())
-		return nil, code, err
-	}
-
-	result, err := uc.storage.SetMetric(ctx, metric)
-	if err != nil {
-		uc.log.Error(err.Error())
-		status := checkError(err)
-		return nil, status, err
-	}
-
-	// Загружаем в starage из файла
-	if uc.permanentStorage.GetConfig().StoreInterval == 0 && uc.permanentStorage.GetConfig().Enabled {
-		if err := uc.SaveToPermanentStorage(ctx); err != nil {
+	for i := range metrics {
+		metric := metrics[i]
+		code, err := checkMetricParams(metric, true)
+		if err != nil {
 			uc.log.Error(err.Error())
+			return nil, code, err
+		}
+
+		m, err := uc.storage.SetMetric(ctx, metric)
+		if err != nil {
+			uc.log.Error(err.Error())
+			status := checkError(err)
+			return nil, status, err
+		}
+
+		result = append(result, m...)
+
+		// Пишем в файл все метрики из storage
+		if uc.permanentStorage.GetConfig().StoreInterval == 0 && uc.permanentStorage.GetConfig().Enabled {
+			if err := uc.SaveToPermanentStorage(ctx); err != nil {
+				uc.log.Error(err.Error())
+			}
 		}
 	}
 
@@ -148,8 +155,11 @@ func checkError(err error) int {
 	switch {
 	case errors.Is(err, models.ErrBadMetricType) || errors.Is(err, models.ErrParseValue):
 		status = http.StatusBadRequest
-	case errors.Is(err, models.ErrMetricTypeNotFound) || errors.Is(err, models.ErrMetricNameNotFound):
+
+	case errors.Is(err, models.ErrMetricTypeNotFound) || errors.Is(err, models.ErrMetricNameNotFound) ||
+		errors.Is(err, sql.ErrNoRows):
 		status = http.StatusNotFound
+
 	default:
 		status = http.StatusInternalServerError
 	}

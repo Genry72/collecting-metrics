@@ -42,7 +42,8 @@ func (h *Handler) setMetricsText(c *gin.Context) {
 
 }
 
-func (h *Handler) setMetricsJSON(c *gin.Context) {
+// setMetricJSON отправка метрик по одной
+func (h *Handler) setMetricJSON(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	metricParams := &models.Metric{}
@@ -60,7 +61,32 @@ func (h *Handler) setMetricsJSON(c *gin.Context) {
 		return
 	}
 
-	c.JSON(status, result)
+	c.JSON(status, result[0])
+}
+
+// setMetricsJSON отправка метрик списком
+func (h *Handler) setMetricsJSON(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	metricParams := make([]*models.Metric, 0)
+
+	if err := c.ShouldBindJSON(&metricParams); err != nil {
+		h.log.Error(err.Error())
+		c.String(http.StatusBadRequest, models.ErrBadBody.Error())
+		return
+	}
+
+	result, status, err := h.useCases.SetMetric(ctx, metricParams...)
+	if err != nil {
+		h.log.Error(err.Error())
+		c.JSON(status, err.Error())
+		return
+	}
+	//if len(result) == 1 {
+	//	c.JSON(status, result[0])
+	//	return
+	//}
+	c.JSON(status, result[0]) // todo когда возвращаю список обновленных метрик, тесты не проходят
 }
 
 func (h *Handler) getMetricText(c *gin.Context) {

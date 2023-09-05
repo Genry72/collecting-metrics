@@ -6,7 +6,7 @@ create table if not exists metrics
     id    bigserial not null,
     name  varchar   not null,
     type  varchar   not null,
-    delta integer,
+    delta bigint,
     value double precision,
 	PRIMARY KEY (name, type)
 );
