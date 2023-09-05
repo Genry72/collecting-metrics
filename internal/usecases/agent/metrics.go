@@ -145,13 +145,13 @@ func (m *Metrics) updateMetics() {
 
 func fromInterfaceGauge(value interface{}) (*float64, error) {
 	var result float64
-	switch value.(type) {
+	switch v := value.(type) {
 	case uint64:
-		result = float64(value.(uint64))
+		result = float64(v)
 	case float64:
-		result = value.(float64)
+		result = v
 	case uint32:
-		result = float64(value.(uint32))
+		result = float64(v)
 	default:
 		return nil, fmt.Errorf("fromInterfaceGauge: %w", models.ErrParseValue)
 	}
