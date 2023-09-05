@@ -80,7 +80,7 @@ func (pg *PGStorage) migrate() error {
 	return nil
 }
 
-func (pg *PGStorage) SetMetric(ctx context.Context, metric *models.Metrics) (*models.Metrics, error) {
+func (pg *PGStorage) SetMetric(ctx context.Context, metric *models.Metric) (*models.Metric, error) {
 	if err := checkMetricType(metric.MType); err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ RETURNING
     value
 `
 
-	result := models.Metrics{}
+	result := models.Metric{}
 
 	row := pg.conn.QueryRowxContext(ctx, query, metric.ID, metric.MType, metric.Delta, metric.Value)
 	if err := row.StructScan(&result); err != nil {
@@ -133,7 +133,7 @@ RETURNING
 }
 
 func (pg *PGStorage) GetMetricValue(ctx context.Context,
-	metricType models.MetricType, metricName models.MetricName) (*models.Metrics, error) {
+	metricType models.MetricType, metricName models.MetricName) (*models.Metric, error) {
 	if err := checkMetricType(metricType); err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ where name = $1
   and type = $2
 `
 
-	result := models.Metrics{}
+	result := models.Metric{}
 
 	row := pg.conn.QueryRowxContext(ctx, query, metricName, metricType)
 	if err := row.StructScan(&result); err != nil {
@@ -155,20 +155,20 @@ where name = $1
 	return &result, nil
 }
 
-func (pg *PGStorage) GetAllMetrics(ctx context.Context) ([]*models.Metrics, error) {
+func (pg *PGStorage) GetAllMetrics(ctx context.Context) ([]*models.Metric, error) {
 	query := `
 select name, type, delta, value
 from metrics
 `
 
-	result := make([]*models.Metrics, 0)
+	result := make([]*models.Metric, 0)
 	if err := pg.conn.SelectContext(ctx, &result, query); err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (pg *PGStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metrics) error {
+func (pg *PGStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metric) error {
 	for i := range metrics {
 		if _, err := pg.SetMetric(ctx, metrics[i]); err != nil {
 			return fmt.Errorf("SetAllMetrics: %w", err)

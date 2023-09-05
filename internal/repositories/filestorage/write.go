@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (fs *FileStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metrics) error {
+func (fs *FileStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metric) error {
 	fs.mx.Lock()
 	if err := fs.file.Truncate(0); err != nil {
 		fs.mx.Unlock()
@@ -31,7 +31,7 @@ func (fs *FileStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metr
 	return nil
 }
 
-func (fs *FileStorage) write(ctx context.Context, metric *models.Metrics) error {
+func (fs *FileStorage) write(ctx context.Context, metric *models.Metric) error {
 	fs.mx.Lock()
 	defer fs.mx.Unlock()
 

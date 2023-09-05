@@ -9,8 +9,8 @@ type MetricType string
 
 type MetricName string
 
-// Metrics структура body запроса/ ответа
-type Metrics struct {
+// Metric структура body запроса/ ответа
+type Metric struct {
 	ID        MetricName `json:"id" uri:"name" binding:"required" db:"name"`   // Имя метрики
 	MType     MetricType `json:"type" uri:"type" binding:"required" db:"type"` // Параметр, принимающий значение gauge или counter
 	Delta     *int64     `json:"delta,omitempty" db:"delta"`                   // Значение метрики в случае передачи counter

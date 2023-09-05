@@ -10,14 +10,14 @@ import (
 
 type MemStorage struct {
 	mx             sync.RWMutex
-	storageCounter map[models.MetricName]*models.Metrics
-	storageGauge   map[models.MetricName]*models.Metrics
+	storageCounter map[models.MetricName]*models.Metric
+	storageGauge   map[models.MetricName]*models.Metric
 	log            *zap.Logger
 }
 
 func NewMemStorage(log *zap.Logger) *MemStorage {
-	storageCounter := make(map[models.MetricName]*models.Metrics)
-	storageGauge := make(map[models.MetricName]*models.Metrics)
+	storageCounter := make(map[models.MetricName]*models.Metric)
+	storageGauge := make(map[models.MetricName]*models.Metric)
 
 	return &MemStorage{
 		storageCounter: storageCounter,
@@ -26,7 +26,7 @@ func NewMemStorage(log *zap.Logger) *MemStorage {
 	}
 }
 
-func (m *MemStorage) SetMetric(ctx context.Context, metric *models.Metrics) (*models.Metrics, error) {
+func (m *MemStorage) SetMetric(ctx context.Context, metric *models.Metric) (*models.Metric, error) {
 	if metric == nil {
 		return nil, models.ErrBadBody
 	}
@@ -68,10 +68,10 @@ func (m *MemStorage) SetMetric(ctx context.Context, metric *models.Metrics) (*mo
 
 }
 
-func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.MetricType, metricName models.MetricName) (*models.Metrics, error) {
+func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.MetricType, metricName models.MetricName) (*models.Metric, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
-	var result *models.Metrics
+	var result *models.Metric
 
 	switch metricType {
 	case models.MetricTypeCounter:
@@ -107,10 +107,10 @@ func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.Metri
 	return result, nil
 }
 
-func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]*models.Metrics, error) {
+func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]*models.Metric, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
-	result := make([]*models.Metrics, 0, len(m.storageGauge)+len(m.storageCounter))
+	result := make([]*models.Metric, 0, len(m.storageGauge)+len(m.storageCounter))
 
 	for _, v := range m.storageCounter {
 		if err := checkContext(ctx); err != nil {
@@ -136,7 +136,7 @@ func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]*models.Metrics, erro
 
 }
 
-func (m *MemStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metrics) error {
+func (m *MemStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metric) error {
 	for i := range metrics {
 		if _, err := m.SetMetric(ctx, metrics[i]); err != nil {
 			return fmt.Errorf("SetAllMetrics: %w", err)

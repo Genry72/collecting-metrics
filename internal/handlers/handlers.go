@@ -24,7 +24,7 @@ func NewServer(uc *server.Server, logger *zap.Logger) *Handler {
 func (h *Handler) setMetricsText(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	metricParams := &models.Metrics{}
+	metricParams := &models.Metric{}
 	if err := c.ShouldBindUri(metricParams); err != nil {
 		h.log.Error(err.Error())
 		c.String(http.StatusBadRequest, "%v: %v", err, models.ErrFormatURL)
@@ -45,7 +45,7 @@ func (h *Handler) setMetricsText(c *gin.Context) {
 func (h *Handler) setMetricsJSON(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	metricParams := &models.Metrics{}
+	metricParams := &models.Metric{}
 
 	if err := c.ShouldBindJSON(metricParams); err != nil {
 		h.log.Error(err.Error())
@@ -66,7 +66,7 @@ func (h *Handler) setMetricsJSON(c *gin.Context) {
 func (h *Handler) getMetricText(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	metricParams := &models.Metrics{}
+	metricParams := &models.Metric{}
 
 	if err := c.ShouldBindUri(metricParams); err != nil {
 		h.log.Error(err.Error())
@@ -96,7 +96,7 @@ func (h *Handler) getMetricText(c *gin.Context) {
 func (h *Handler) getMetricsJSON(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	metricParams := &models.Metrics{}
+	metricParams := &models.Metric{}
 
 	if err := c.ShouldBindJSON(metricParams); err != nil {
 		h.log.Error(err.Error())

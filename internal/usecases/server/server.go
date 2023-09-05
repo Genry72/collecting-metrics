@@ -29,7 +29,7 @@ func NewServerUc(repo repositories.Repositories, permStor repositories.Permanent
 	}
 }
 
-func (uc *Server) SetMetric(ctx context.Context, metric *models.Metrics) (*models.Metrics, int, error) {
+func (uc *Server) SetMetric(ctx context.Context, metric *models.Metric) (*models.Metric, int, error) {
 
 	code, err := checkMetricParams(metric, true)
 	if err != nil {
@@ -54,7 +54,7 @@ func (uc *Server) SetMetric(ctx context.Context, metric *models.Metrics) (*model
 	return result, http.StatusOK, nil
 }
 
-func (uc *Server) GetMetricValue(ctx context.Context, metric *models.Metrics) (*models.Metrics, int, error) {
+func (uc *Server) GetMetricValue(ctx context.Context, metric *models.Metric) (*models.Metric, int, error) {
 
 	code, err := checkMetricParams(metric, false)
 	if err != nil {
@@ -98,7 +98,7 @@ func (uc *Server) GetAllMetrics(ctx context.Context) (string, int, error) {
 	return sb.String(), http.StatusOK, nil
 }
 
-func checkMetricParams(metric *models.Metrics, checkValue bool) (int, error) {
+func checkMetricParams(metric *models.Metric, checkValue bool) (int, error) {
 
 	if checkValue && metric.ValueText == "" && metric.Value == nil && metric.Delta == nil {
 		return http.StatusBadRequest, models.ErrBadMetricValue
