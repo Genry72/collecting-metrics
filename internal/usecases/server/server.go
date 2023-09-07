@@ -37,15 +37,13 @@ func (uc *Server) SetMetric(ctx context.Context, metrics ...*models.Metric) ([]*
 		metric := metrics[i]
 		code, err := checkMetricParams(metric, true)
 		if err != nil {
-			uc.log.Error(err.Error())
-			return nil, code, err
+			return nil, code, fmt.Errorf("checkMetricParams: %w", err)
 		}
 
 		m, err := uc.storage.SetMetric(ctx, metric)
 		if err != nil {
-			uc.log.Error(err.Error())
 			status := checkError(err)
-			return nil, status, err
+			return nil, status, fmt.Errorf("uc.storage.SetMetric: %w", err)
 		}
 
 		result = append(result, m...)
@@ -65,15 +63,13 @@ func (uc *Server) GetMetricValue(ctx context.Context, metric *models.Metric) (*m
 
 	code, err := checkMetricParams(metric, false)
 	if err != nil {
-		uc.log.Error(err.Error())
-		return nil, code, err
+		return nil, code, fmt.Errorf("checkMetricParams: %w", err)
 	}
 
 	result, err := uc.storage.GetMetricValue(ctx, metric.MType, metric.ID)
 	if err != nil {
-		uc.log.Error(err.Error())
 		status := checkError(err)
-		return nil, status, err
+		return nil, status, fmt.Errorf("uc.storage.GetMetricValue: %w", err)
 	}
 
 	return result, http.StatusOK, nil
@@ -82,8 +78,7 @@ func (uc *Server) GetMetricValue(ctx context.Context, metric *models.Metric) (*m
 func (uc *Server) GetAllMetrics(ctx context.Context) (string, int, error) {
 	metrics, err := uc.storage.GetAllMetrics(ctx)
 	if err != nil {
-		uc.log.Error(err.Error())
-		return "", checkError(err), err
+		return "", checkError(err), fmt.Errorf("uc.storage.GetAllMetrics: %w", err)
 	}
 
 	sb := strings.Builder{}

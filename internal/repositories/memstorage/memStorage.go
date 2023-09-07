@@ -33,7 +33,7 @@ func (m *MemStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) (
 		metric := metrics[i]
 
 		if err := checkContext(ctx); err != nil {
-			return nil, fmt.Errorf("SetMetric: %w", err)
+			return nil, fmt.Errorf("checkContext: %w", err)
 		}
 
 		switch metric.MType {
@@ -62,8 +62,7 @@ func (m *MemStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) (
 		}
 		mm, err := m.GetMetricValue(ctx, metric.MType, metric.ID)
 		if err != nil {
-			m.log.Error(err.Error())
-			return nil, err
+			return nil, fmt.Errorf("GetMetricValue: %w", err)
 		}
 		result = append(result, mm)
 	}
@@ -80,7 +79,7 @@ func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.Metri
 	switch metricType {
 	case models.MetricTypeCounter:
 		if err := checkContext(ctx); err != nil {
-			return nil, fmt.Errorf("GetMetricValue.Counter: %w", err)
+			return nil, fmt.Errorf("checkContext: %w", err)
 		}
 
 		val, ok := m.storageCounter[metricName]
@@ -93,7 +92,7 @@ func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.Metri
 
 	case models.MetricTypeGauge:
 		if err := checkContext(ctx); err != nil {
-			return nil, fmt.Errorf("GetMetricValue.Gauge: %w", err)
+			return nil, fmt.Errorf("checkContext: %w", err)
 		}
 		val, ok := m.storageGauge[metricName]
 		if !ok {
@@ -104,7 +103,6 @@ func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.Metri
 		result = val
 
 	default:
-		m.log.Error(models.ErrBadMetricType.Error())
 		return nil, fmt.Errorf("%w: %s", models.ErrBadMetricType, metricType)
 	}
 
@@ -118,7 +116,7 @@ func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]*models.Metric, error
 
 	for _, v := range m.storageCounter {
 		if err := checkContext(ctx); err != nil {
-			return nil, fmt.Errorf("GetAllMetrics.Counter: %w", err)
+			return nil, fmt.Errorf("GcheckContext: %w", err)
 		}
 
 		result = append(result, v)
@@ -126,7 +124,7 @@ func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]*models.Metric, error
 
 	for _, v := range m.storageGauge {
 		if err := checkContext(ctx); err != nil {
-			return nil, fmt.Errorf("GetAllMetrics.Gauge: %w", err)
+			return nil, fmt.Errorf("checkContext: %w", err)
 		}
 
 		result = append(result, v)
@@ -143,7 +141,7 @@ func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]*models.Metric, error
 func (m *MemStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metric) error {
 	for i := range metrics {
 		if _, err := m.SetMetric(ctx, metrics[i]); err != nil {
-			return fmt.Errorf("SetAllMetrics: %w", err)
+			return fmt.Errorf("SetMetric: %w", err)
 		}
 	}
 	return nil

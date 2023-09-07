@@ -68,7 +68,7 @@ func (m *Metrics) getMetrics() ([]*models.Metric, error) {
 	for metricName, value := range gaugeMetricData {
 		v, err := fromInterfaceGauge(value)
 		if err != nil {
-			return nil, fmt.Errorf("getMetrics: %w", err)
+			return nil, fmt.Errorf("fromInterfaceGauge: %w", err)
 		}
 		result = append(result, &models.Metric{
 			ID:        models.MetricName(metricName),
@@ -82,7 +82,7 @@ func (m *Metrics) getMetrics() ([]*models.Metric, error) {
 	for metricName, value := range counterMetricsData {
 		v, ok := value.(int64)
 		if !ok {
-			return nil, fmt.Errorf("getMetrics: %w", models.ErrBadMetricValue)
+			return nil, fmt.Errorf("value.(int64): %w", models.ErrBadMetricValue)
 		}
 
 		result = append(result, &models.Metric{

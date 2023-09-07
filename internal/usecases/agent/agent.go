@@ -31,7 +31,7 @@ func (a *Agent) SendMetrics(metric *Metrics, reportInterval time.Duration) {
 		time.Sleep(reportInterval)
 		metrics, err := metric.getMetrics()
 		if err != nil {
-			a.log.Error(err.Error())
+			a.log.Error("metric.getMetrics", zap.Error(err))
 		}
 
 		if err := a.sendByJSONBatch(metrics); err != nil {
@@ -58,13 +58,13 @@ func (a *Agent) sendByJSONBatch(metric []*models.Metric) error {
 
 		resp, err := a.httpClient.R().SetBody(metric).Post(a.hostPort + url)
 		if err != nil {
-			a.log.Error(err.Error())
+			a.log.Error("resp", zap.Error(err))
 			// или сеть или тело ответа
 			continue
 		}
 
 		if err := checkStatus(resp.StatusCode()); err != nil {
-			a.log.Error(err.Error())
+			a.log.Error("checkStatus", zap.Error(err))
 			rErr = err
 			var e *models.RetryError
 			if errors.As(err, &e) {

@@ -12,17 +12,17 @@ func (fs *FileStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metr
 	fs.mx.Lock()
 	if err := fs.file.Truncate(0); err != nil {
 		fs.mx.Unlock()
-		return fmt.Errorf("SetAllMetrics.Truncate: %w", err)
+		return fmt.Errorf("fs.file.Truncate: %w", err)
 	}
 
 	fs.mx.Unlock()
 
 	for _, metric := range metrics {
 		if err := checkContext(ctx); err != nil {
-			return fmt.Errorf("SetAllMetrics: %w", err)
+			return fmt.Errorf("checkContext: %w", err)
 		}
 		if err := fs.write(ctx, metric); err != nil {
-			return fmt.Errorf("SetAllMetrics: %w", err)
+			return fmt.Errorf("fs.write: %w", err)
 		}
 	}
 
@@ -36,17 +36,17 @@ func (fs *FileStorage) write(ctx context.Context, metric *models.Metric) error {
 	defer fs.mx.Unlock()
 
 	if err := checkContext(ctx); err != nil {
-		return fmt.Errorf("write: %w", err)
+		return fmt.Errorf("checkContext: %w", err)
 	}
 
 	data, err := json.Marshal(metric)
 	if err != nil {
-		return fmt.Errorf("write.Marshal: %w", err)
+		return fmt.Errorf("json.Marshal: %w", err)
 	}
 
 	// записываем событие в буфер
 	if _, err := fs.writer.Write(data); err != nil {
-		return fmt.Errorf("write.Write: %w", err)
+		return fmt.Errorf("fs.writer.Write: %w", err)
 	}
 
 	// добавляем перенос строки

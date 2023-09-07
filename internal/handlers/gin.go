@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/handlers/midlware/gzip"
 	"github.com/Genry72/collecting-metrics/internal/handlers/midlware/log"
 	"github.com/gin-gonic/gin"
@@ -16,7 +17,7 @@ func (h *Handler) RunServer(hostPort string) error {
 	h.setupRoute(g)
 
 	if err := g.Run(hostPort); err != nil {
-		return err
+		return fmt.Errorf("g.Run: %w", err)
 	}
 
 	return nil

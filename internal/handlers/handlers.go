@@ -26,14 +26,14 @@ func (h *Handler) setMetricsText(c *gin.Context) {
 
 	metricParams := &models.Metric{}
 	if err := c.ShouldBindUri(metricParams); err != nil {
-		h.log.Error(err.Error())
+		h.log.Error("setMetricsText", zap.Error(err))
 		c.String(http.StatusBadRequest, "%v: %v", err, models.ErrFormatURL)
 		return
 	}
 
 	_, status, err := h.useCases.SetMetric(ctx, metricParams)
 	if err != nil {
-		h.log.Error(err.Error())
+		h.log.Error(" h.useCases.SetMetric", zap.Error(err))
 		c.String(status, err.Error())
 		return
 	}
@@ -49,14 +49,14 @@ func (h *Handler) setMetricJSON(c *gin.Context) {
 	metricParams := &models.Metric{}
 
 	if err := c.ShouldBindJSON(metricParams); err != nil {
-		h.log.Error(err.Error())
+		h.log.Error("ShouldBindJSON", zap.Error(err))
 		c.String(http.StatusBadRequest, models.ErrBadBody.Error())
 		return
 	}
 
 	result, status, err := h.useCases.SetMetric(ctx, metricParams)
 	if err != nil {
-		h.log.Error(err.Error())
+		h.log.Error("h.useCases.SetMetric", zap.Error(err))
 		c.JSON(status, err.Error())
 		return
 	}
@@ -71,14 +71,14 @@ func (h *Handler) setMetricsJSON(c *gin.Context) {
 	metricParams := make([]*models.Metric, 0)
 
 	if err := c.ShouldBindJSON(&metricParams); err != nil {
-		h.log.Error(err.Error())
+		h.log.Error("ShouldBindJSON", zap.Error(err))
 		c.String(http.StatusBadRequest, models.ErrBadBody.Error())
 		return
 	}
 
 	_, status, err := h.useCases.SetMetric(ctx, metricParams...)
 	if err != nil {
-		h.log.Error(err.Error())
+		h.log.Error("h.useCases.SetMetric", zap.Error(err))
 		c.JSON(status, err.Error())
 		return
 	}
@@ -96,14 +96,14 @@ func (h *Handler) getMetricText(c *gin.Context) {
 	metricParams := &models.Metric{}
 
 	if err := c.ShouldBindUri(metricParams); err != nil {
-		h.log.Error(err.Error())
+		h.log.Error("ShouldBindUri", zap.Error(err))
 		c.String(http.StatusBadRequest, "%v", err)
 		return
 	}
 
 	val, status, err := h.useCases.GetMetricValue(ctx, metricParams)
 	if err != nil {
-		h.log.Error(err.Error())
+		h.log.Error("h.useCases.GetMetricValue", zap.Error(err))
 		c.String(status, err.Error())
 		return
 	}
@@ -126,21 +126,21 @@ func (h *Handler) getMetricsJSON(c *gin.Context) {
 	metricParams := &models.Metric{}
 
 	if err := c.ShouldBindJSON(metricParams); err != nil {
-		h.log.Error(err.Error())
+		h.log.Error("c.ShouldBindJSON", zap.Error(err))
 		c.String(http.StatusBadRequest, models.ErrBadBody.Error())
 		return
 	}
 
 	val, status, err := h.useCases.GetMetricValue(ctx, metricParams)
 	if err != nil {
-		h.log.Error(err.Error())
+		h.log.Error("h.useCases.GetMetricValue", zap.Error(err))
 		c.String(status, err.Error())
 		return
 	}
 
 	valByte, err := json.Marshal(val)
 	if err != nil {
-		h.log.Error(err.Error())
+		h.log.Error("json.Marshal", zap.Error(err))
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -157,7 +157,7 @@ func (h *Handler) getAllMetrics(c *gin.Context) {
 
 	val, status, err := h.useCases.GetAllMetrics(ctx)
 	if err != nil {
-		h.log.Error(err.Error())
+		h.log.Error("h.useCases.GetAllMetrics", zap.Error(err))
 		c.String(status, err.Error())
 		return
 	}
@@ -170,7 +170,7 @@ func (h *Handler) pingDatabase(c *gin.Context) {
 	c.Header("Content-Type", "text/html")
 
 	if err := h.useCases.PingDataBase(); err != nil {
-		h.log.Error(err.Error())
+		h.log.Error("h.useCases.PingDataBase", zap.Error(err))
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}

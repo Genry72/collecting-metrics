@@ -20,11 +20,11 @@ type PGStorage struct {
 func NewPGStorage(dsn string, log *zap.Logger) (*PGStorage, error) {
 	db, err := sqlx.Connect("postgres", dsn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("sqlx.Connect: %w", err)
 	}
 
 	if err := db.Ping(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("db.Ping: %w", err)
 	}
 
 	pg := &PGStorage{
@@ -33,7 +33,7 @@ func NewPGStorage(dsn string, log *zap.Logger) (*PGStorage, error) {
 	}
 
 	if err := pg.migrate(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("pg.migrate: %w", err)
 	}
 
 	return pg, nil
@@ -41,7 +41,7 @@ func NewPGStorage(dsn string, log *zap.Logger) (*PGStorage, error) {
 
 func (pg *PGStorage) Stop() {
 	if err := pg.conn.Close(); err != nil {
-		pg.log.Error(err.Error())
+		pg.log.Error("g.conn.Close", zap.Error(err))
 		return
 	}
 
@@ -58,21 +58,21 @@ func (pg *PGStorage) Ping() error {
 func (pg *PGStorage) migrate() error {
 	tx, err := pg.conn.Begin()
 	if err != nil {
-		return err
+		return fmt.Errorf("pg.conn.Begin: %w", err)
 	}
 
 	defer func() {
 		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-			pg.log.Error("migrate.Rollback", zap.Error(err))
+			pg.log.Error("tx.Rollback", zap.Error(err))
 		}
 	}()
 
 	if _, err := tx.Exec(migrationQuery); err != nil {
-		return err
+		return fmt.Errorf("tx.Exec: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return err
+		return fmt.Errorf("tx.Commit:%w", err)
 	}
 
 	pg.log.Info("success migration")
@@ -106,12 +106,12 @@ RETURNING
 `
 	tx, err := pg.conn.Beginx()
 	if err != nil {
-		return nil, fmt.Errorf("SetMetric.Begin: %w", err)
+		return nil, fmt.Errorf("pg.conn.Beginx: %w", err)
 	}
 
 	stmt, err := tx.PreparexContext(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("SetMetric.PreparexContext: %w", err)
+		return nil, fmt.Errorf("tx.PreparexContext: %w", err)
 	}
 
 	defer func() {
@@ -133,7 +133,7 @@ RETURNING
 		if metric.MType == models.MetricTypeCounter {
 			oldMetric, err := pg.GetMetricValue(ctx, metric.MType, metric.ID)
 			if err != nil && !errors.Is(err, sql.ErrNoRows) {
-				return nil, fmt.Errorf("SetMetric: %w", err)
+				return nil, fmt.Errorf("pg.GetMetricValue: %w", err)
 			}
 
 			oldValue := int64(0)
@@ -156,14 +156,14 @@ RETURNING
 		}
 
 		if err := row.Err(); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("row.Err: %w", err)
 		}
 
 		result = append(result, &m)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("SetMetric.Commit: %w", err)
+		return nil, fmt.Errorf("tx.Commit: %w", err)
 	}
 
 	return result, nil
@@ -172,7 +172,7 @@ RETURNING
 func (pg *PGStorage) GetMetricValue(ctx context.Context,
 	metricType models.MetricType, metricName models.MetricName) (*models.Metric, error) {
 	if err := checkMetricType(metricType); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("checkMetricType: %w", err)
 	}
 
 	query := `
@@ -186,11 +186,11 @@ where name = $1
 
 	row := pg.conn.QueryRowxContext(ctx, query, metricName, metricType)
 	if err := row.StructScan(&result); err != nil {
-		return nil, fmt.Errorf("GetMetricValue.QueryRowxContext: %w", err)
+		return nil, fmt.Errorf("row.StructScant: %w", err)
 	}
 
 	if err := row.Err(); err != nil {
-		return nil, fmt.Errorf("GetMetricValue: %w", err)
+		return nil, fmt.Errorf("row.Err: %w", err)
 	}
 
 	return &result, nil
@@ -204,7 +204,7 @@ from metrics
 
 	result := make([]*models.Metric, 0)
 	if err := pg.conn.SelectContext(ctx, &result, query); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("pg.conn.SelectContext: %w", err)
 	}
 	return result, nil
 }
@@ -212,7 +212,7 @@ from metrics
 func (pg *PGStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metric) error {
 	for i := range metrics {
 		if _, err := pg.SetMetric(ctx, metrics[i]); err != nil {
-			return fmt.Errorf("SetAllMetrics: %w", err)
+			return fmt.Errorf("pg.SetMetric: %w", err)
 		}
 	}
 	return nil

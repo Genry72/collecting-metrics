@@ -18,7 +18,7 @@ type gzipWriter struct {
 func newGzipWriter(w gin.ResponseWriter) (*gzipWriter, error) {
 	gzWR, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 	if err != nil {
-		return nil, fmt.Errorf("gzip: %w", err)
+		return nil, fmt.Errorf("gzip.NewWriterLevel: %w", err)
 	}
 
 	return &gzipWriter{
