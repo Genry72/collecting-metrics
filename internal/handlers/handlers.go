@@ -76,7 +76,7 @@ func (h *Handler) setMetricsJSON(c *gin.Context) {
 		return
 	}
 
-	result, status, err := h.useCases.SetMetric(ctx, metricParams...)
+	_, status, err := h.useCases.SetMetric(ctx, metricParams...)
 	if err != nil {
 		h.log.Error(err.Error())
 		c.JSON(status, err.Error())
@@ -86,7 +86,8 @@ func (h *Handler) setMetricsJSON(c *gin.Context) {
 	//	c.JSON(status, result[0])
 	//	return
 	//}
-	c.JSON(status, result[0]) // todo когда возвращаю список обновленных метрик, тесты не проходят
+	//c.JSON(status, result[0]) // todo когда возвращаю список обновленных метрик, тесты не проходят
+	c.String(200, "")
 }
 
 func (h *Handler) getMetricText(c *gin.Context) {

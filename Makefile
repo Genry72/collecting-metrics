@@ -17,6 +17,7 @@ test:
 	./metricstest -test.v -test.run=^TestIteration10  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"  -database-dsn="postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"
 	./metricstest -test.v -test.run=^TestIteration11  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"  -database-dsn="postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"
 	./metricstest -test.v -test.run=^TestIteration12  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"  -database-dsn="postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"
+	./metricstest -test.v -test.run=^TestIteration13  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"  -database-dsn="postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"
 
 .PHONY: runServer
 runServer:

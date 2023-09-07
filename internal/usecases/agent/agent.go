@@ -1,11 +1,11 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/models"
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
-	"net/http"
 	"time"
 )
 
@@ -33,59 +33,67 @@ func (a *Agent) SendMetrics(metric *Metrics, reportInterval time.Duration) {
 		if err != nil {
 			a.log.Error(err.Error())
 		}
-		//for i := range metrics {
-		//	if err := a.sendByURL(metrics[i]); err != nil {
-		//		a.log.Error(err.Error())
-		//	}
-		//}
+
 		if err := a.sendByJSONBatch(metrics); err != nil {
-			a.log.Error(err.Error())
+			a.log.Error("sendByJSONBatch", zap.Error(err))
+			continue
 		}
 		a.log.Info("metrics send success")
 	}
 }
 
-func (a *Agent) sendByURL(metric *models.Metric) error {
-	var url string
-
-	if metric == nil {
-		return models.ErrBadMetricType
-	}
-
-	switch metric.MType {
-	case models.MetricTypeGauge:
-		url = fmt.Sprintf("/update/%s/%s/%v", models.MetricTypeGauge, metric.ID, *metric.Value)
-	case models.MetricTypeCounter:
-		url = fmt.Sprintf("/update/%s/%s/%v", models.MetricTypeCounter, metric.ID, *metric.Delta)
-	}
-	resp, err := a.httpClient.R().Post(a.hostPort + url)
-	if err != nil {
-		a.log.Error(err.Error())
-		return err
-	}
-
-	if resp.StatusCode() != http.StatusOK {
-		err = fmt.Errorf("%s :%s", resp.Status(), string(resp.Body()))
-		a.log.Error(err.Error())
-		return err
-	}
-
-	return nil
-}
-
 func (a *Agent) sendByJSONBatch(metric []*models.Metric) error {
 	url := "/updates"
-	resp, err := a.httpClient.R().SetBody(metric).Post(a.hostPort + url)
-	if err != nil {
-		a.log.Error(err.Error())
-		return err
+
+	// Индекс - количество выполненных повторов. Значение пауза в секундах
+	retry := []time.Duration{0, 1, 3, 5}
+
+	var (
+		rErr error
+	)
+
+	for i := 0; i < len(retry); i++ {
+		sleepTime := retry[i]
+		time.Sleep(sleepTime * time.Second)
+
+		resp, err := a.httpClient.R().SetBody(metric).Post(a.hostPort + url)
+		if err != nil {
+			a.log.Error(err.Error())
+			// или сеть или тело ответа
+			continue
+		}
+
+		if err := checkStatus(resp.StatusCode()); err != nil {
+			a.log.Error(err.Error())
+			rErr = err
+			var e *models.RetryError
+			if errors.As(err, &e) {
+				// ошибка, при которой нужно повторить запрос
+				continue
+			}
+
+			return err
+		}
+		// если дошли до сюда, то запрос выполнился корректно
+		rErr = nil
+		break
 	}
 
-	if resp.StatusCode() != http.StatusOK {
-		err = fmt.Errorf("%s :%s", resp.Status(), string(resp.Body()))
-		a.log.Error(err.Error())
-		return err
-	}
+	return rErr
+}
 
-	return nil
+func checkStatus(statusCode int) error {
+	switch {
+	case statusCode >= 200 && statusCode < 400:
+		return nil
+	case statusCode >= 400 && statusCode < 500:
+		// повтор не нужен
+		return fmt.Errorf("status not ok: %d", statusCode)
+	case statusCode >= 500:
+		// нужен повтор
+		err := fmt.Errorf("status not ok: %d", statusCode)
+		return models.NewRetryError(err)
+	default:
+		return nil
+	}
 }

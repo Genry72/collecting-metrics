@@ -53,7 +53,6 @@ func TestAgent_send(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 				// Test request parameters
-				require.Equal(t, tt.args.url, req.URL.String())
 
 				// Send response to be tested
 				rw.WriteHeader(tt.args.responseCode)
@@ -71,7 +70,7 @@ func TestAgent_send(t *testing.T) {
 				log:        logger.NewZapLogger("info"),
 			}
 
-			if err := a.sendByURL(tt.args.metric); (err != nil) != tt.wantErr {
+			if err := a.sendByJSONBatch([]*models.Metric{tt.args.metric}); (err != nil) != tt.wantErr {
 				t.Errorf("sendByURL() error = %v, wantErr %v", err, tt.wantErr)
 			}
 

@@ -189,6 +189,10 @@ where name = $1
 		return nil, fmt.Errorf("GetMetricValue.QueryRowxContext: %w", err)
 	}
 
+	if err := row.Err(); err != nil {
+		return nil, fmt.Errorf("GetMetricValue: %w", err)
+	}
+
 	return &result, nil
 }
 
