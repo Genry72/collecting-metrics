@@ -7,18 +7,18 @@ import (
 	"github.com/Genry72/collecting-metrics/internal/models"
 )
 
-func (fs *FileStorage) GetAllMetrics(ctx context.Context) ([]*models.Metrics, error) {
+func (fs *FileStorage) GetAllMetrics(ctx context.Context) ([]*models.Metric, error) {
 	fs.mx.RLock()
 	defer fs.mx.RUnlock()
-	metrics := make([]*models.Metrics, 0)
+	metrics := make([]*models.Metric, 0)
 	for fs.reader.Scan() {
 		if err := checkContext(ctx); err != nil {
-			return nil, fmt.Errorf("GetAllMetrics: %w", err)
+			return nil, fmt.Errorf("checkContext: %w", err)
 		}
 		b := fs.reader.Bytes()
-		metric := models.Metrics{}
+		metric := models.Metric{}
 		if err := json.Unmarshal(b, &metric); err != nil {
-			return nil, fmt.Errorf("GetAllMetrics.Unmarshal: %w", err)
+			return nil, fmt.Errorf("json.Unmarshal: %w", err)
 		}
 		metrics = append(metrics, &metric)
 	}

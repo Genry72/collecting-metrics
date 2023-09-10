@@ -9,6 +9,9 @@ import (
 
 func (uc *Server) RunSaveToPermanentStorage(ctx context.Context) {
 	fsconf := uc.permanentStorage.GetConfig()
+	if !fsconf.Enabled {
+		return
+	}
 	// Запускаем периодическое сохранение метрик в файл
 	go func() {
 		for {
@@ -19,7 +22,7 @@ func (uc *Server) RunSaveToPermanentStorage(ctx context.Context) {
 			default:
 			}
 			if err := uc.SaveToPermanentStorage(ctx); err != nil {
-				uc.log.Error(err.Error())
+				uc.log.Error("uc.SaveToPermanentStorage", zap.Error(err))
 				return
 			}
 
@@ -33,11 +36,11 @@ func (uc *Server) LoadMetricFromPermanentStore(ctx context.Context) error {
 
 	metrics, err := uc.permanentStorage.GetAllMetrics(ctx)
 	if err != nil {
-		return fmt.Errorf("LoadMetricFromPermanentStore.GetAllMetrics: %w", err)
+		return fmt.Errorf("uc.permanentStorage.GetAllMetrics: %w", err)
 	}
 
 	if err := uc.storage.SetAllMetrics(ctx, metrics); err != nil {
-		return fmt.Errorf("LoadMetricFromPermanentStore.SetAllMetrics: %w", err)
+		return fmt.Errorf("uc.storage.SetAllMetrics: %w", err)
 	}
 
 	uc.log.Info("metrics success loaded from start", zap.Int("count", len(metrics)))
@@ -46,13 +49,17 @@ func (uc *Server) LoadMetricFromPermanentStore(ctx context.Context) error {
 }
 
 func (uc *Server) SaveToPermanentStorage(ctx context.Context) error {
+	if !uc.permanentStorage.GetConfig().Enabled {
+		return nil
+	}
+
 	metrics, err := uc.storage.GetAllMetrics(ctx)
 	if err != nil {
-		return fmt.Errorf("saveToPermanentStorage.GetAllMetrics: %w", err)
+		return fmt.Errorf("uc.storage.GetAllMetrics: %w", err)
 	}
 
 	if err := uc.permanentStorage.SetAllMetrics(ctx, metrics); err != nil {
-		return fmt.Errorf("saveToPermanentStorage.SetAllMetrics: %w", err)
+		return fmt.Errorf("uc.permanentStorage.SetAllMetrics: %w", err)
 	}
 	return nil
 }

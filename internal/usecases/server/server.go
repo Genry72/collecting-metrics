@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/models"
@@ -16,55 +17,59 @@ import (
 type Server struct {
 	storage          repositories.Repositories
 	permanentStorage repositories.PermanentStorage // Работа с файлом
+	database         repositories.DatabaseStorage  // Работа с базой данных
 	log              *zap.Logger
 }
 
-func NewServerUc(repo repositories.Repositories, permStor repositories.PermanentStorage, log *zap.Logger) *Server {
+func NewServerUc(repo repositories.Repositories, permStor repositories.PermanentStorage, database repositories.DatabaseStorage, log *zap.Logger) *Server {
 	return &Server{
 		storage:          repo,
 		permanentStorage: permStor,
+		database:         database,
 		log:              log,
 	}
 }
 
-func (uc *Server) SetMetric(ctx context.Context, metric *models.Metrics) (*models.Metrics, int, error) {
+func (uc *Server) SetMetric(ctx context.Context, metrics ...*models.Metric) ([]*models.Metric, int, error) {
+	result := make([]*models.Metric, 0, len(metrics))
 
-	code, err := checkMetricParams(metric, true)
-	if err != nil {
-		uc.log.Error(err.Error())
-		return nil, code, err
-	}
+	for i := range metrics {
+		metric := metrics[i]
+		code, err := checkMetricParams(metric, true)
+		if err != nil {
+			return nil, code, fmt.Errorf("checkMetricParams: %w", err)
+		}
 
-	result, err := uc.storage.SetMetric(ctx, metric)
-	if err != nil {
-		uc.log.Error(err.Error())
-		status := checkError(err)
-		return nil, status, err
-	}
+		m, err := uc.storage.SetMetric(ctx, metric)
+		if err != nil {
+			status := checkError(err)
+			return nil, status, fmt.Errorf("uc.storage.SetMetric: %w", err)
+		}
 
-	// Загружаем в starage из файла
-	if uc.permanentStorage.GetConfig().StoreInterval == 0 {
-		if err := uc.SaveToPermanentStorage(ctx); err != nil {
-			uc.log.Error(err.Error())
+		result = append(result, m...)
+
+		// Пишем в файл все метрики из storage
+		if uc.permanentStorage.GetConfig().StoreInterval == 0 && uc.permanentStorage.GetConfig().Enabled {
+			if err := uc.SaveToPermanentStorage(ctx); err != nil {
+				uc.log.Error(err.Error())
+			}
 		}
 	}
 
 	return result, http.StatusOK, nil
 }
 
-func (uc *Server) GetMetricValue(ctx context.Context, metric *models.Metrics) (*models.Metrics, int, error) {
+func (uc *Server) GetMetricValue(ctx context.Context, metric *models.Metric) (*models.Metric, int, error) {
 
 	code, err := checkMetricParams(metric, false)
 	if err != nil {
-		uc.log.Error(err.Error())
-		return nil, code, err
+		return nil, code, fmt.Errorf("checkMetricParams: %w", err)
 	}
 
 	result, err := uc.storage.GetMetricValue(ctx, metric.MType, metric.ID)
 	if err != nil {
-		uc.log.Error(err.Error())
 		status := checkError(err)
-		return nil, status, err
+		return nil, status, fmt.Errorf("uc.storage.GetMetricValue: %w", err)
 	}
 
 	return result, http.StatusOK, nil
@@ -73,8 +78,7 @@ func (uc *Server) GetMetricValue(ctx context.Context, metric *models.Metrics) (*
 func (uc *Server) GetAllMetrics(ctx context.Context) (string, int, error) {
 	metrics, err := uc.storage.GetAllMetrics(ctx)
 	if err != nil {
-		uc.log.Error(err.Error())
-		return "", checkError(err), err
+		return "", checkError(err), fmt.Errorf("uc.storage.GetAllMetrics: %w", err)
 	}
 
 	sb := strings.Builder{}
@@ -96,7 +100,7 @@ func (uc *Server) GetAllMetrics(ctx context.Context) (string, int, error) {
 	return sb.String(), http.StatusOK, nil
 }
 
-func checkMetricParams(metric *models.Metrics, checkValue bool) (int, error) {
+func checkMetricParams(metric *models.Metric, checkValue bool) (int, error) {
 
 	if checkValue && metric.ValueText == "" && metric.Value == nil && metric.Delta == nil {
 		return http.StatusBadRequest, models.ErrBadMetricValue
@@ -146,8 +150,11 @@ func checkError(err error) int {
 	switch {
 	case errors.Is(err, models.ErrBadMetricType) || errors.Is(err, models.ErrParseValue):
 		status = http.StatusBadRequest
-	case errors.Is(err, models.ErrMetricTypeNotFound) || errors.Is(err, models.ErrMetricNameNotFound):
+
+	case errors.Is(err, models.ErrMetricTypeNotFound) || errors.Is(err, models.ErrMetricNameNotFound) ||
+		errors.Is(err, sql.ErrNoRows):
 		status = http.StatusNotFound
+
 	default:
 		status = http.StatusInternalServerError
 	}

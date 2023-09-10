@@ -15,7 +15,7 @@ type gzipReader struct {
 func newGzipReader(r io.ReadCloser) (*gzipReader, error) {
 	gzReader, err := gzip.NewReader(r)
 	if err != nil {
-		return nil, fmt.Errorf("gzip: %w", err)
+		return nil, fmt.Errorf("gzip.NewReader: %w", err)
 	}
 
 	return &gzipReader{

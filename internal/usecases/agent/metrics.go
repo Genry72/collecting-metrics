@@ -59,23 +59,42 @@ type counterMetrics struct {
 }
 
 // Получение улов для отправки метрик
-func (m *Metrics) getUrlsMetric() []string {
+func (m *Metrics) getMetrics() ([]*models.Metric, error) {
 	gaugeMetricData := structs.Map(m.gauge)
 	counterMetricsData := structs.Map(m.counter)
 
-	result := make([]string, 0, len(gaugeMetricData)+len(counterMetricsData))
+	result := make([]*models.Metric, 0, len(gaugeMetricData)+len(counterMetricsData))
 
 	for metricName, value := range gaugeMetricData {
-		url := fmt.Sprintf("/update/%s/%s/%v", models.MetricTypeGauge, metricName, value)
-		result = append(result, url)
+		v, err := fromInterfaceGauge(value)
+		if err != nil {
+			return nil, fmt.Errorf("fromInterfaceGauge: %w", err)
+		}
+		result = append(result, &models.Metric{
+			ID:        models.MetricName(metricName),
+			MType:     models.MetricTypeGauge,
+			Delta:     nil,
+			Value:     v,
+			ValueText: fmt.Sprint(value),
+		})
 	}
 
 	for metricName, value := range counterMetricsData {
-		url := fmt.Sprintf("/update/%s/%s/%v", models.MetricTypeCounter, metricName, value)
-		result = append(result, url)
+		v, ok := value.(int64)
+		if !ok {
+			return nil, fmt.Errorf("value.(int64): %w", models.ErrBadMetricValue)
+		}
+
+		result = append(result, &models.Metric{
+			ID:        models.MetricName(metricName),
+			MType:     models.MetricTypeCounter,
+			Delta:     &v,
+			Value:     nil,
+			ValueText: fmt.Sprint(value),
+		})
 	}
 
-	return result
+	return result, nil
 }
 
 // Update Запуск обновления метрик с заданным интервалом
@@ -122,4 +141,19 @@ func (m *Metrics) updateMetics() {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	m.gauge.RandomValue = r.Float64()
+}
+
+func fromInterfaceGauge(value interface{}) (*float64, error) {
+	var result float64
+	switch v := value.(type) {
+	case uint64:
+		result = float64(v)
+	case float64:
+		result = v
+	case uint32:
+		result = float64(v)
+	default:
+		return nil, fmt.Errorf("fromInterfaceGauge: %w", models.ErrParseValue)
+	}
+	return &result, nil
 }

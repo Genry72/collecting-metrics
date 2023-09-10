@@ -7,15 +7,20 @@ import (
 )
 
 type Repositories interface {
-	SetMetric(ctx context.Context, metric *models.Metrics) (*models.Metrics, error)
-	SetAllMetrics(ctx context.Context, metrics []*models.Metrics) error
-	GetMetricValue(ctx context.Context, metricType models.MetricType, metricName models.MetricName) (*models.Metrics, error)
-	GetAllMetrics(ctx context.Context) ([]*models.Metrics, error)
+	SetMetric(ctx context.Context, metrics ...*models.Metric) ([]*models.Metric, error)
+	SetAllMetrics(ctx context.Context, metrics []*models.Metric) error
+	GetMetricValue(ctx context.Context, metricType models.MetricType, metricName models.MetricName) (*models.Metric, error)
+	GetAllMetrics(ctx context.Context) ([]*models.Metric, error)
 }
 
 type PermanentStorage interface {
-	SetAllMetrics(context.Context, []*models.Metrics) error
-	GetAllMetrics(ctx context.Context) ([]*models.Metrics, error)
-	Stop() error
+	SetAllMetrics(context.Context, []*models.Metric) error
+	GetAllMetrics(ctx context.Context) ([]*models.Metric, error)
+	Stop()
 	GetConfig() *filestorage.StorageConf
+}
+
+type DatabaseStorage interface {
+	Ping() error
+	Stop()
 }

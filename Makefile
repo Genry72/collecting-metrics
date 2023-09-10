@@ -14,10 +14,14 @@ test:
 	./metricstest -test.v -test.run=^TestIteration7  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)
 	./metricstest -test.v -test.run=^TestIteration8  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)
 	./metricstest -test.v -test.run=^TestIteration9  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"
+	./metricstest -test.v -test.run=^TestIteration10  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"  -database-dsn="postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"
+	./metricstest -test.v -test.run=^TestIteration11  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"  -database-dsn="postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"
+	./metricstest -test.v -test.run=^TestIteration12  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"  -database-dsn="postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"
+	./metricstest -test.v -test.run=^TestIteration13  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"  -database-dsn="postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"
 
 .PHONY: runServer
 runServer:
-	go run ./cmd/server -a ":$(port)" -f "./tests.txt"
+	go run ./cmd/server -a ":$(port)" -f "./tests.txt" -d "postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"
 
 .PHONY: runAgent
 runAgent:

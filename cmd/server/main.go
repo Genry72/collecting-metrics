@@ -6,6 +6,7 @@ import (
 	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/Genry72/collecting-metrics/internal/repositories/filestorage"
 	"github.com/Genry72/collecting-metrics/internal/repositories/memstorage"
+	"github.com/Genry72/collecting-metrics/internal/repositories/postgre"
 	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"go.uber.org/zap"
 	"os"
@@ -19,6 +20,7 @@ var (
 	flagStoreInterval   int
 	flagFileStoragePath string
 	flagRestore         bool
+	flagPgDsn           string
 )
 
 const (
@@ -38,6 +40,8 @@ const (
 		из указанного файла при старте сервера (по умолчанию true)
 	*/
 	envRestore = "RESTORE"
+	// Строка с адресом подключения к БД
+	envPgDSN = "DATABASE_DSN"
 )
 
 func main() {
@@ -56,27 +60,41 @@ func main() {
 
 	defer mainStop()
 
-	repo := memstorage.NewMemStorage(zapLogger)
-
-	permStorConf := filestorage.NewPermanentStorageConf(flagStoreInterval, flagFileStoragePath, flagRestore)
-
-	permStorage, err := filestorage.NewFileStorage(permStorConf, zapLogger)
+	databaseStorage, err := postgre.NewPGStorage(flagPgDsn, zapLogger)
 	if err != nil {
-		zapLogger.Error("start permStorage", zap.Error(err))
+		zapLogger.Error("connect databaseStorage", zap.Error(err))
+	} else {
+		zapLogger.Info("connect to db success")
+		defer databaseStorage.Stop()
 	}
 
-	defer permStorage.Stop()
+	var uc *server.Server
 
-	zapLogger.Info("file storage success started")
+	if databaseStorage == nil {
+		memStorage := memstorage.NewMemStorage(zapLogger)
 
-	uc := server.NewServerUc(repo, permStorage, zapLogger)
+		permStorConf := filestorage.NewPermanentStorageConf(flagStoreInterval, flagFileStoragePath, flagRestore)
 
-	// Загрузка метрик из файла при старте
-	if permStorConf.Restore {
-		if err := uc.LoadMetricFromPermanentStore(ctxMain); err != nil {
-			zapLogger.Error(err.Error())
-			return
+		fileStorage, err := filestorage.NewFileStorage(permStorConf, zapLogger)
+		if err != nil {
+			zapLogger.Error("start fileStorage", zap.Error(err))
+		} else {
+			zapLogger.Info("file storage success started")
+			defer fileStorage.Stop()
 		}
+
+		uc = server.NewServerUc(memStorage, fileStorage, databaseStorage, zapLogger)
+
+		// Загрузка метрик из файла при старте
+		if permStorConf.Restore {
+			if err := uc.LoadMetricFromPermanentStore(ctxMain); err != nil {
+				zapLogger.Error(err.Error())
+				return
+			}
+		}
+
+	} else {
+		uc = server.NewServerUc(databaseStorage, databaseStorage, databaseStorage, zapLogger)
 	}
 
 	h := handlers.NewServer(uc, zapLogger)

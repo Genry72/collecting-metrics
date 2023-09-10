@@ -1,6 +1,8 @@
 package models
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	ErrStorageIsEmpty     = errors.New("metricStorage is empry")
@@ -13,3 +15,18 @@ var (
 	ErrBadMetricValue     = errors.New("bad metric value")
 	ErrDeadlineContext    = errors.New("deadline Context")
 )
+
+// RetryError тип ошибки, при которой требуется переповтор запросов
+type RetryError struct {
+	err error
+}
+
+func (re *RetryError) Error() string {
+	return re.err.Error()
+}
+
+func NewRetryError(err error) error {
+	return &RetryError{
+		err: err,
+	}
+}
