@@ -18,14 +18,15 @@ test:
 	./metricstest -test.v -test.run=^TestIteration11  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"  -database-dsn="postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"
 	./metricstest -test.v -test.run=^TestIteration12  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"  -database-dsn="postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"
 	./metricstest -test.v -test.run=^TestIteration13  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"  -database-dsn="postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"
+	./metricstest -test.v -test.run=^TestIteration14  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"  -database-dsn="postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"  -key="superKey"
 
 .PHONY: runServer
 runServer:
-	go run ./cmd/server -a ":$(port)" -f "./tests.txt" -d "postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"
+	go run ./cmd/server -a ":$(port)" -f "./tests.txt" -d "postgres://postgres:pass@localhost:5432/metrics?sslmode=disable" -k "superKey"
 
 .PHONY: runAgent
 runAgent:
-	go run ./cmd/agent -a ":$(port)" -r 10 -p 2
+	go run ./cmd/agent -a ":$(port)" -r 10 -p 2 -k "superKey"
 
 .PHONY: cover
 cover:

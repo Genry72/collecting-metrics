@@ -12,6 +12,7 @@ func parseFlags() {
 	flag.StringVar(&flagEndpointServer, "a", ":8080", "address and port to run server")
 	flag.IntVar(&flagReportInterval, "r", 10, "report interval")
 	flag.IntVar(&flagPollInterval, "p", 2, "poll interval")
+	flag.StringVar(&flagKeyHash, "k", "", "key for hash")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
 
@@ -29,6 +30,10 @@ func parseFlags() {
 		if pi, err := strconv.ParseInt(pollInterval, 10, 64); err == nil {
 			flagPollInterval = int(pi)
 		}
+	}
+
+	if key := os.Getenv(envKeyHash); key != "" {
+		flagKeyHash = key
 	}
 
 }

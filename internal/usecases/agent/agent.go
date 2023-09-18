@@ -13,15 +13,17 @@ type Agent struct {
 	httpClient *resty.Client
 	hostPort   string
 	log        *zap.Logger
+	keyHash    *string
 }
 
-func NewAgent(hostPort string, log *zap.Logger) *Agent {
+func NewAgent(hostPort string, log *zap.Logger, keyHash *string) *Agent {
 	restyClient := resty.New()
 	restyClient.SetTimeout(time.Second)
 	return &Agent{
 		httpClient: restyClient,
 		hostPort:   hostPort,
 		log:        log,
+		keyHash:    keyHash,
 	}
 }
 
@@ -42,7 +44,7 @@ func (a *Agent) SendMetrics(metric *Metrics, reportInterval time.Duration) {
 	}
 }
 
-func (a *Agent) sendByJSONBatch(metric []*models.Metric) error {
+func (a *Agent) sendByJSONBatch(metric models.Metrics) error {
 	url := "/updates"
 
 	// Индекс - количество выполненных повторов. Значение пауза в секундах
@@ -55,6 +57,15 @@ func (a *Agent) sendByJSONBatch(metric []*models.Metric) error {
 	for i := 0; i < len(retry); i++ {
 		sleepTime := retry[i]
 		time.Sleep(sleepTime * time.Second)
+
+		// Добавляем заголовок с хешем тела запроса, если передан ключ
+		if a.keyHash != nil {
+			hash, err := metric.Encode(*a.keyHash)
+			if err != nil {
+				return fmt.Errorf("metric.Encode: %w", err)
+			}
+			a.httpClient.SetHeader(models.HeaderHash, hash)
+		}
 
 		resp, err := a.httpClient.R().SetBody(metric).Post(a.hostPort + url)
 		if err != nil {

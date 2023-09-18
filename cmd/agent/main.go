@@ -11,12 +11,14 @@ var (
 	flagEndpointServer string // endpoint сервера
 	flagReportInterval int    // Частота оправки метрик в секундах
 	flagPollInterval   int    // Частота обновления метрик
+	flagKeyHash        string // Ключ для расчета HashSHA256
 )
 
 const (
 	envEndpoint       = "ADDRESS"
 	envreportInterval = "REPORT_INTERVAL"
 	envPollInterval   = "POLL_INTERVAL"
+	envKeyHash        = "KEY"
 )
 
 func main() {
@@ -38,7 +40,13 @@ func main() {
 	// Запускаем обновление раз в 2 секунты
 	metrics.Update(time.Duration(flagPollInterval) * time.Second)
 
-	agentUc := agent.NewAgent("http://"+flagEndpointServer, zapLogger)
+	var keyHash *string
+
+	if flagKeyHash != "" {
+		keyHash = &flagKeyHash
+	}
+
+	agentUc := agent.NewAgent("http://"+flagEndpointServer, zapLogger, keyHash)
 
 	// Запускаем отправку метрик раз 10 секунд
 	agentUc.SendMetrics(metrics, time.Duration(flagReportInterval)*time.Second)

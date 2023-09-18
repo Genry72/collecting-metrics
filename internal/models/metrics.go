@@ -1,5 +1,11 @@
 package models
 
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/Genry72/collecting-metrics/internal/usecases/cryptor"
+)
+
 const (
 	MetricTypeGauge   MetricType = "gauge"
 	MetricTypeCounter MetricType = "counter"
@@ -16,4 +22,16 @@ type Metric struct {
 	Delta     *int64     `json:"delta,omitempty" db:"delta"`                   // Значение метрики в случае передачи counter
 	Value     *float64   `json:"value,omitempty" db:"value"`                   // Значение метрики в случае передачи gauge
 	ValueText string     `json:"-" uri:"value"`                                // Значение метрики в случае передачи GET запросом
+}
+
+type Metrics []*Metric
+
+// Encode Хеш SHA256 на основе ключа
+func (m *Metrics) Encode(password string) (string, error) {
+	metricByte, err := json.Marshal(m)
+	if err != nil {
+		return "", fmt.Errorf("json.Marshal: %w", err)
+	}
+
+	return cryptor.Encrypt(metricByte, password)
 }
