@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
+	"time"
 )
 
 type PGStorage struct {
@@ -22,7 +23,10 @@ func NewPGStorage(dsn string, log *zap.Logger) (*PGStorage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("sqlx.Connect: %w", err)
 	}
-
+	db.SetMaxOpenConns(10)
+	db.SetConnMaxLifetime(10 * time.Second)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxIdleTime(1 * time.Minute)
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("db.Ping: %w", err)
 	}

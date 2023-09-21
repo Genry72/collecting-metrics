@@ -65,9 +65,10 @@ func TestAgent_send(t *testing.T) {
 			defer server.Close()
 
 			a := &Agent{
-				httpClient: resty.New(),
-				hostPort:   server.URL,
-				log:        logger.NewZapLogger("info"),
+				httpClient:    resty.New(),
+				hostPort:      server.URL,
+				log:           logger.NewZapLogger("info"),
+				ratelimitChan: make(chan struct{}, 1),
 			}
 
 			if err := a.sendByJSONBatch([]*models.Metric{tt.args.metric}); (err != nil) != tt.wantErr {
@@ -99,7 +100,7 @@ func TestNewAgent(t *testing.T) {
 	key := "superKey"
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewAgent(tt.args.hostPort, zapLogger, &key); !reflect.DeepEqual(got, tt.want) {
+			if got := NewAgent(tt.args.hostPort, zapLogger, &key, 1); !reflect.DeepEqual(got, tt.want) {
 				require.IsType(t, &Agent{}, got)
 			}
 		})

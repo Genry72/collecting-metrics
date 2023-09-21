@@ -10,20 +10,22 @@ import (
 )
 
 type Agent struct {
-	httpClient *resty.Client
-	hostPort   string
-	log        *zap.Logger
-	keyHash    *string
+	httpClient    *resty.Client
+	hostPort      string
+	log           *zap.Logger
+	keyHash       *string
+	ratelimitChan chan struct{} // Количество одновременно исходящих запросов на сервер
 }
 
-func NewAgent(hostPort string, log *zap.Logger, keyHash *string) *Agent {
+func NewAgent(hostPort string, log *zap.Logger, keyHash *string, rateLimit uint64) *Agent {
 	restyClient := resty.New()
 	restyClient.SetTimeout(time.Second)
 	return &Agent{
-		httpClient: restyClient,
-		hostPort:   hostPort,
-		log:        log,
-		keyHash:    keyHash,
+		httpClient:    restyClient,
+		hostPort:      hostPort,
+		log:           log,
+		keyHash:       keyHash,
+		ratelimitChan: make(chan struct{}, rateLimit),
 	}
 }
 
@@ -31,20 +33,35 @@ func NewAgent(hostPort string, log *zap.Logger, keyHash *string) *Agent {
 func (a *Agent) SendMetrics(metric *Metrics, reportInterval time.Duration) {
 	for {
 		time.Sleep(reportInterval)
-		metrics, err := metric.getMetrics()
-		if err != nil {
-			a.log.Error("metric.getMetrics", zap.Error(err))
-		}
 
-		if err := a.sendByJSONBatch(metrics); err != nil {
-			a.log.Error("sendByJSONBatch", zap.Error(err))
-			continue
-		}
-		a.log.Info("metrics send success")
+		go func() {
+			metrics, err := metric.getMetrics()
+			if err != nil {
+				a.log.Error("metric.getMetrics", zap.Error(err))
+			}
+
+			if len(metrics) == 0 {
+				return
+			}
+
+			if err := a.sendByJSONBatch(metrics); err != nil {
+				a.log.Fatal("sendByJSONBatch", zap.Error(err))
+				return
+			}
+
+		}()
+
 	}
 }
 
 func (a *Agent) sendByJSONBatch(metric models.Metrics) error {
+
+	defer func() {
+		<-a.ratelimitChan
+	}()
+
+	a.ratelimitChan <- struct{}{}
+
 	url := "/updates"
 
 	// Индекс - количество выполненных повторов. Значение пауза в секундах
@@ -64,7 +81,7 @@ func (a *Agent) sendByJSONBatch(metric models.Metrics) error {
 			if err != nil {
 				return fmt.Errorf("metric.Encode: %w", err)
 			}
-			a.httpClient.SetHeader(models.HeaderHash, hash)
+			a.httpClient.R().SetHeader(models.HeaderHash, hash)
 		}
 
 		resp, err := a.httpClient.R().SetBody(metric).Post(a.hostPort + url)
@@ -74,7 +91,7 @@ func (a *Agent) sendByJSONBatch(metric models.Metrics) error {
 			continue
 		}
 
-		if err := checkStatus(resp.StatusCode()); err != nil {
+		if err := checkStatus(resp.StatusCode(), string(resp.Body())); err != nil {
 			a.log.Error("checkStatus", zap.Error(err))
 			rErr = err
 			var e *models.RetryError
@@ -90,19 +107,21 @@ func (a *Agent) sendByJSONBatch(metric models.Metrics) error {
 		break
 	}
 
+	a.log.Info("metrics send success")
+
 	return rErr
 }
 
-func checkStatus(statusCode int) error {
+func checkStatus(statusCode int, body string) error {
 	switch {
 	case statusCode >= 200 && statusCode < 400:
 		return nil
 	case statusCode >= 400 && statusCode < 500:
 		// повтор не нужен
-		return fmt.Errorf("status not ok: %d", statusCode)
+		return fmt.Errorf("status not ok: %d body: %s", statusCode, body)
 	case statusCode >= 500:
 		// нужен повтор
-		err := fmt.Errorf("status not ok: %d", statusCode)
+		err := fmt.Errorf("status not ok: %d body: %s", statusCode, body)
 		return models.NewRetryError(err)
 	default:
 		return nil
