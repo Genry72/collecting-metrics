@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/models"
@@ -30,86 +31,103 @@ func NewAgent(hostPort string, log *zap.Logger, keyHash *string, rateLimit uint6
 }
 
 // SendMetrics Отправка метрик с заданным интервалом
-func (a *Agent) SendMetrics(metric *Metrics, reportInterval time.Duration) {
-	for {
-		time.Sleep(reportInterval)
+func (a *Agent) SendMetrics(ctx context.Context, metric *Metrics, reportInterval time.Duration) {
+	go func() {
+		for {
+			time.Sleep(reportInterval)
 
-		go func() {
-			metrics, err := metric.getMetrics()
-			if err != nil {
-				a.log.Error("metric.getMetrics", zap.Error(err))
-			}
-
-			if len(metrics) == 0 {
+			select {
+			case <-ctx.Done():
+				a.log.Info("Stop SendMetrics process")
 				return
+			default:
 			}
 
-			if err := a.sendByJSONBatch(metrics); err != nil {
-				a.log.Fatal("sendByJSONBatch", zap.Error(err))
-				return
-			}
+			go func() {
+				metrics, err := metric.getMetrics()
+				if err != nil {
+					a.log.Error("metric.getMetrics", zap.Error(err))
+				}
 
-		}()
+				if len(metrics) == 0 {
+					return
+				}
 
-	}
+				if err := a.sendByJSONBatch(ctx, metrics); err != nil {
+					a.log.Fatal("sendByJSONBatch", zap.Error(err))
+					return
+				}
+
+			}()
+
+		}
+
+	}()
+
 }
 
-func (a *Agent) sendByJSONBatch(metric models.Metrics) error {
+func (a *Agent) sendByJSONBatch(ctx context.Context, metric models.Metrics) error {
 
 	defer func() {
 		<-a.ratelimitChan
 	}()
 
-	a.ratelimitChan <- struct{}{}
+	select {
+	case <-ctx.Done():
+		close(a.ratelimitChan)
+		a.log.Info("Stop sendByJSONBatch process")
+		return nil
+	case a.ratelimitChan <- struct{}{}:
+		url := "/updates"
 
-	url := "/updates"
+		// Индекс - количество выполненных повторов. Значение пауза в секундах
+		retry := []time.Duration{0, 1, 3, 5}
 
-	// Индекс - количество выполненных повторов. Значение пауза в секундах
-	retry := []time.Duration{0, 1, 3, 5}
+		var (
+			rErr error
+		)
 
-	var (
-		rErr error
-	)
+		for i := 0; i < len(retry); i++ {
+			sleepTime := retry[i]
+			time.Sleep(sleepTime * time.Second)
 
-	for i := 0; i < len(retry); i++ {
-		sleepTime := retry[i]
-		time.Sleep(sleepTime * time.Second)
-
-		// Добавляем заголовок с хешем тела запроса, если передан ключ
-		if a.keyHash != nil {
-			hash, err := metric.Encode(*a.keyHash)
-			if err != nil {
-				return fmt.Errorf("metric.Encode: %w", err)
+			// Добавляем заголовок с хешем тела запроса, если передан ключ
+			if a.keyHash != nil {
+				hash, err := metric.Encode(*a.keyHash)
+				if err != nil {
+					return fmt.Errorf("metric.Encode: %w", err)
+				}
+				a.httpClient.R().SetHeader(models.HeaderHash, hash)
 			}
-			a.httpClient.R().SetHeader(models.HeaderHash, hash)
-		}
-
-		resp, err := a.httpClient.R().SetBody(metric).Post(a.hostPort + url)
-		if err != nil {
-			a.log.Error("resp", zap.Error(err))
-			// или сеть или тело ответа
-			continue
-		}
-
-		if err := checkStatus(resp.StatusCode(), string(resp.Body())); err != nil {
-			a.log.Error("checkStatus", zap.Error(err))
-			rErr = err
-			var e *models.RetryError
-			if errors.As(err, &e) {
-				// ошибка, при которой нужно повторить запрос
+			client := a.httpClient.R().SetContext(ctx)
+			resp, err := client.SetBody(metric).Post(a.hostPort + url)
+			if err != nil {
+				a.log.Error("resp", zap.Error(err))
+				// или сеть или тело ответа
 				continue
 			}
 
-			return err
+			if err := checkStatus(resp.StatusCode(), string(resp.Body())); err != nil {
+				a.log.Error("checkStatus", zap.Error(err))
+				rErr = err
+				var e *models.RetryError
+				if errors.As(err, &e) {
+					// ошибка, при которой нужно повторить запрос
+					continue
+				}
+
+				return err
+			}
+			// если дошли до сюда, то запрос выполнился корректно
+			rErr = nil
+			break
 		}
-		// если дошли до сюда, то запрос выполнился корректно
-		rErr = nil
-		break
+
+		a.log.Info("metrics send success")
+
+		return rErr
 	}
 
-	a.log.Info("metrics send success")
-
-	return rErr
 }
 
 func checkStatus(statusCode int, body string) error {

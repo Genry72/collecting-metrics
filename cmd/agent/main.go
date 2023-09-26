@@ -1,9 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/Genry72/collecting-metrics/internal/usecases/agent"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -30,9 +33,7 @@ func main() {
 	zapLogger := logger.NewZapLogger("info")
 
 	defer func() {
-		if err := zapLogger.Sync(); err != nil {
-			fmt.Println(err)
-		}
+		_ = zapLogger.Sync()
 	}()
 
 	zapLogger.Info("start agent")
@@ -50,7 +51,19 @@ func main() {
 
 	agentUc := agent.NewAgent("http://"+flagEndpointServer, zapLogger, keyHash, flagRateLimit)
 
-	// Запускаем отправку метрик раз 10 секунд
-	agentUc.SendMetrics(metrics, time.Duration(flagReportInterval)*time.Second)
+	ctx, cansel := context.WithCancel(context.Background())
 
+	// Запускаем отправку метрик раз 10 секунд
+	agentUc.SendMetrics(ctx, metrics, time.Duration(flagReportInterval)*time.Second)
+
+	// Graceful shutdown block
+	quit := make(chan os.Signal, 1)
+
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	<-quit
+
+	cansel()
+	// таймаут на завершение всех задач
+	time.Sleep(time.Second)
 }

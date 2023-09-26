@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/Genry72/collecting-metrics/internal/models"
 	"github.com/go-resty/resty/v2"
@@ -71,7 +72,7 @@ func TestAgent_send(t *testing.T) {
 				ratelimitChan: make(chan struct{}, 1),
 			}
 
-			if err := a.sendByJSONBatch([]*models.Metric{tt.args.metric}); (err != nil) != tt.wantErr {
+			if err := a.sendByJSONBatch(context.Background(), []*models.Metric{tt.args.metric}); (err != nil) != tt.wantErr {
 				t.Errorf("sendByURL() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
