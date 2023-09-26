@@ -54,7 +54,7 @@ func (a *Agent) SendMetrics(ctx context.Context, metric *Metrics, reportInterval
 				}
 
 				if err := a.sendByJSONBatch(ctx, metrics); err != nil {
-					a.log.Fatal("sendByJSONBatch", zap.Error(err))
+					a.log.Error("sendByJSONBatch", zap.Error(err))
 					return
 				}
 
