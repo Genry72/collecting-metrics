@@ -6,6 +6,7 @@ import (
 	"github.com/fatih/structs"
 	"math/rand"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -13,6 +14,7 @@ type Metrics struct {
 	gauge   *gaugeRunTimeMetrics
 	counter *counterMetrics
 	rtm     *runtime.MemStats
+	sm      sync.RWMutex
 }
 
 func NewMetrics() *Metrics {
@@ -58,8 +60,10 @@ type counterMetrics struct {
 	PollCount int64
 }
 
-// Получение улов для отправки метрик
+// Получение метрик
 func (m *Metrics) getMetrics() ([]*models.Metric, error) {
+	m.sm.RLock()
+	defer m.sm.RUnlock()
 	gaugeMetricData := structs.Map(m.gauge)
 	counterMetricsData := structs.Map(m.counter)
 
@@ -108,6 +112,8 @@ func (m *Metrics) Update(pollInterval time.Duration) {
 }
 
 func (m *Metrics) updateMetics() {
+	m.sm.Lock()
+	defer m.sm.Unlock()
 	runtime.ReadMemStats(m.rtm)
 	m.gauge.Alloc = m.rtm.Alloc
 	m.gauge.BuckHashSys = m.rtm.BuckHashSys

@@ -23,7 +23,7 @@ func parseFlags() {
 
 	flag.StringVar(&flagPgDsn, "d", "", "булево значение (true/false), определяющее, загружать или"+
 		" нет ранее сохранённые значения из указанного файла при старте сервера (по умолчанию true)")
-
+	flag.StringVar(&flagKeyHash, "k", "", "key for hash")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
 
@@ -53,5 +53,9 @@ func parseFlags() {
 
 	if value := os.Getenv(envPgDSN); value != "" {
 		flagPgDsn = value
+	}
+
+	if key := os.Getenv(envKeyHash); key != "" {
+		flagKeyHash = key
 	}
 }

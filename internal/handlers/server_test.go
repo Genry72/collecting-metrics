@@ -40,7 +40,7 @@ func TestHandler_RunServer(t *testing.T) {
 			wantErr: false,
 		},
 	}
-
+	key := "superKey"
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &Handler{
@@ -48,7 +48,7 @@ func TestHandler_RunServer(t *testing.T) {
 			}
 
 			if tt.wantErr {
-				err := h.RunServer(tt.args.port)
+				err := h.RunServer(tt.args.port, &key)
 				require.Error(t, err)
 			}
 

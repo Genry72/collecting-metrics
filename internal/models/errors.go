@@ -14,6 +14,7 @@ var (
 	ErrBadBody            = errors.New("bad format body")
 	ErrBadMetricValue     = errors.New("bad metric value")
 	ErrDeadlineContext    = errors.New("deadline Context")
+	ErrHashNotEqual       = errors.New("hash not equal")
 )
 
 // RetryError тип ошибки, при которой требуется переповтор запросов

@@ -21,6 +21,7 @@ var (
 	flagFileStoragePath string
 	flagRestore         bool
 	flagPgDsn           string
+	flagKeyHash         string
 )
 
 const (
@@ -42,6 +43,8 @@ const (
 	envRestore = "RESTORE"
 	// Строка с адресом подключения к БД
 	envPgDSN = "DATABASE_DSN"
+	// Ключ для шифрования
+	envKeyHash = "KEY"
 )
 
 func main() {
@@ -99,8 +102,14 @@ func main() {
 
 	h := handlers.NewServer(uc, zapLogger)
 
+	var keyHash *string
+
+	if flagKeyHash != "" {
+		keyHash = &flagKeyHash
+	}
+
 	go func() {
-		if err := h.RunServer(flagRunAddr); err != nil {
+		if err := h.RunServer(flagRunAddr, keyHash); err != nil {
 			zapLogger.Error(err.Error())
 		}
 	}()
