@@ -132,7 +132,7 @@ func TestHandler_setMetrics(t *testing.T) {
 			r := httptest.NewRequest(tt.args.method, tt.args.url, nil)
 			gin.SetMode(gin.ReleaseMode)
 			g := gin.New()
-			h.setupRoute(g)
+			h.setupRoute(g, nil)
 			g.ServeHTTP(w, r)
 			//res := w.Result()
 			// проверяем код ответа

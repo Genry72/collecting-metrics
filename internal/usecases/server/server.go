@@ -49,7 +49,8 @@ func (uc *Server) SetMetric(ctx context.Context, metrics ...*models.Metric) ([]*
 		result = append(result, m...)
 
 		// Пишем в файл все метрики из storage
-		if uc.permanentStorage.GetConfig().StoreInterval == 0 && uc.permanentStorage.GetConfig().Enabled {
+		if uc.permanentStorage != nil && uc.permanentStorage.GetConfig().StoreInterval == 0 &&
+			uc.permanentStorage.GetConfig().Enabled {
 			if err := uc.SaveToPermanentStorage(ctx); err != nil {
 				uc.log.Error(err.Error())
 			}

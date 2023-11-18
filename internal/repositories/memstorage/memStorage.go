@@ -101,7 +101,6 @@ func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.Metri
 		}
 
 		result = val
-
 	default:
 		return nil, fmt.Errorf("%w: %s", models.ErrBadMetricType, metricType)
 	}

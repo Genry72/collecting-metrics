@@ -27,7 +27,8 @@ runServer:
 
 .PHONY: runAgent
 runAgent:
-	go run ./cmd/agent -a ":$(port)" -r 10 -p 2 -k "superKey" -l 1
+	go build -o ./cmd/agent/ ./cmd/agent/ && \
+	./cmd/agent/agent -a ":$(port)" -r 10 -p 0 -k "superKey" -l 1 -pprofAddress ":8080"
 
 .PHONY: cover
 cover:
