@@ -84,10 +84,7 @@ func (pg *PGStorage) migrate() error {
 	return nil
 }
 
-func (pg *PGStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) ([]*models.Metric, error) {
-
-	result := make([]*models.Metric, 0, len(metrics))
-
+func (pg *PGStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) error {
 	query := `
 INSERT INTO metrics (name,
                      type,
@@ -102,20 +99,15 @@ ON CONFLICT (name, type)
                   type= EXCLUDED.type,
                   delta= EXCLUDED.delta,
                   value = EXCLUDED.value
-RETURNING
-    name,
-    type,
-    delta,
-    value
 `
 	tx, err := pg.conn.Beginx()
 	if err != nil {
-		return nil, fmt.Errorf("pg.conn.Beginx: %w", err)
+		return fmt.Errorf("pg.conn.Beginx: %w", err)
 	}
 
 	stmt, err := tx.PreparexContext(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("tx.PreparexContext: %w", err)
+		return fmt.Errorf("tx.PreparexContext: %w", err)
 	}
 
 	defer func() {
@@ -131,13 +123,13 @@ RETURNING
 		metric := metrics[i]
 
 		if err := checkMetricType(metric.MType); err != nil {
-			return nil, err
+			return err
 		}
 
 		if metric.MType == models.MetricTypeCounter {
 			oldMetric, err := pg.GetMetricValue(ctx, metric.MType, metric.ID)
 			if err != nil && !errors.Is(err, sql.ErrNoRows) {
-				return nil, fmt.Errorf("pg.GetMetricValue: %w", err)
+				return fmt.Errorf("pg.GetMetricValue: %w", err)
 			}
 
 			oldValue := int64(0)
@@ -150,27 +142,18 @@ RETURNING
 			metric.Delta = &v
 		}
 
-		var m models.Metric
+		_, err = stmt.ExecContext(ctx, metric.ID, metric.MType, metric.Delta, metric.Value)
 
-		row := stmt.QueryRowxContext(ctx, metric.ID, metric.MType, metric.Delta, metric.Value)
-
-		if err := row.StructScan(&m); err != nil {
-			fmt.Printf("%+v\n", *metric.Delta)
-			return nil, fmt.Errorf("row.StructScan: %w", err)
+		if err != nil {
+			return fmt.Errorf("stmt.ExecContext: %w", err)
 		}
-
-		if err := row.Err(); err != nil {
-			return nil, fmt.Errorf("row.Err: %w", err)
-		}
-
-		result = append(result, &m)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("tx.Commit: %w", err)
+		return fmt.Errorf("tx.Commit: %w", err)
 	}
 
-	return result, nil
+	return nil
 }
 
 func (pg *PGStorage) GetMetricValue(ctx context.Context,
@@ -215,7 +198,7 @@ from metrics
 
 func (pg *PGStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metric) error {
 	for i := range metrics {
-		if _, err := pg.SetMetric(ctx, metrics[i]); err != nil {
+		if err := pg.SetMetric(ctx, metrics[i]); err != nil {
 			return fmt.Errorf("pg.SetMetric: %w", err)
 		}
 	}

@@ -10,8 +10,6 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"strconv"
-
-	"strings"
 )
 
 type Server struct {
@@ -30,23 +28,20 @@ func NewServerUc(repo repositories.Repositories, permStor repositories.Permanent
 	}
 }
 
-func (uc *Server) SetMetric(ctx context.Context, metrics ...*models.Metric) ([]*models.Metric, int, error) {
-	result := make([]*models.Metric, 0, len(metrics))
+func (uc *Server) SetMetric(ctx context.Context, metrics ...*models.Metric) (int, error) {
 
 	for i := range metrics {
 		metric := metrics[i]
 		code, err := checkMetricParams(metric, true)
 		if err != nil {
-			return nil, code, fmt.Errorf("checkMetricParams: %w", err)
+			return code, fmt.Errorf("checkMetricParams: %w", err)
 		}
 
-		m, err := uc.storage.SetMetric(ctx, metric)
+		err = uc.storage.SetMetric(ctx, metric)
 		if err != nil {
 			status := checkError(err)
-			return nil, status, fmt.Errorf("uc.storage.SetMetric: %w", err)
+			return status, fmt.Errorf("uc.storage.SetMetric: %w", err)
 		}
-
-		result = append(result, m...)
 
 		// Пишем в файл все метрики из storage
 		if uc.permanentStorage != nil && uc.permanentStorage.GetConfig().StoreInterval == 0 &&
@@ -57,7 +52,7 @@ func (uc *Server) SetMetric(ctx context.Context, metrics ...*models.Metric) ([]*
 		}
 	}
 
-	return result, http.StatusOK, nil
+	return http.StatusOK, nil
 }
 
 func (uc *Server) GetMetricValue(ctx context.Context, metric *models.Metric) (*models.Metric, int, error) {
@@ -76,29 +71,26 @@ func (uc *Server) GetMetricValue(ctx context.Context, metric *models.Metric) (*m
 	return result, http.StatusOK, nil
 }
 
-func (uc *Server) GetAllMetrics(ctx context.Context) (string, int, error) {
+func (uc *Server) GetAllMetrics(ctx context.Context) (map[models.MetricName]interface{}, int, error) {
 	metrics, err := uc.storage.GetAllMetrics(ctx)
 	if err != nil {
-		return "", checkError(err), fmt.Errorf("uc.storage.GetAllMetrics: %w", err)
+		return nil, checkError(err), fmt.Errorf("uc.storage.GetAllMetrics: %w", err)
 	}
 
-	sb := strings.Builder{}
+	m := make(map[models.MetricName]interface{}, len(metrics))
 
 	for _, v := range metrics {
-		var value string
 		switch v.MType {
 		case models.MetricTypeCounter:
-			value = fmt.Sprint(*v.Delta)
+			m[v.ID] = v.Delta
 		case models.MetricTypeGauge:
-			value = fmt.Sprint(*v.Value)
+			m[v.ID] = v.Value
 		default:
-			return "", http.StatusInternalServerError, fmt.Errorf("%w:%s", models.ErrMetricTypeNotFound, v.MType)
+			return nil, http.StatusInternalServerError, fmt.Errorf("%w:%s", models.ErrMetricTypeNotFound, v.MType)
 		}
 
-		sb.WriteString(fmt.Sprintf("%s : %s\n", v.ID, value))
 	}
-
-	return sb.String(), http.StatusOK, nil
+	return m, http.StatusOK, nil
 }
 
 func checkMetricParams(metric *models.Metric, checkValue bool) (int, error) {

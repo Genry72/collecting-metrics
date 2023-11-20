@@ -26,14 +26,13 @@ func NewMemStorage(log *zap.Logger) *MemStorage {
 	}
 }
 
-func (m *MemStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) ([]*models.Metric, error) {
-	result := make([]*models.Metric, 0, len(metrics))
+func (m *MemStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) error {
 
 	for i := range metrics {
 		metric := metrics[i]
 
 		if err := checkContext(ctx); err != nil {
-			return nil, fmt.Errorf("checkContext: %w", err)
+			return fmt.Errorf("checkContext: %w", err)
 		}
 
 		switch metric.MType {
@@ -60,15 +59,10 @@ func (m *MemStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) (
 
 			m.mx.Unlock()
 		}
-		mm, err := m.GetMetricValue(ctx, metric.MType, metric.ID)
-		if err != nil {
-			return nil, fmt.Errorf("GetMetricValue: %w", err)
-		}
-		result = append(result, mm)
+
 	}
 
-	return result, nil
-
+	return nil
 }
 
 func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.MetricType, metricName models.MetricName) (*models.Metric, error) {
@@ -139,7 +133,7 @@ func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]*models.Metric, error
 
 func (m *MemStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metric) error {
 	for i := range metrics {
-		if _, err := m.SetMetric(ctx, metrics[i]); err != nil {
+		if err := m.SetMetric(ctx, metrics[i]); err != nil {
 			return fmt.Errorf("SetMetric: %w", err)
 		}
 	}
