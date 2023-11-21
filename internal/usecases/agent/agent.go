@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/models"
 	"github.com/go-resty/resty/v2"
+	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 	"time"
 )
@@ -94,7 +95,15 @@ func (a *Agent) sendByJSONBatch(ctx context.Context, metric models.Metrics) erro
 				a.httpClient.R().SetHeader(models.HeaderHash, hash)
 			}
 			client := a.httpClient.R().SetContext(ctx)
-			resp, err := client.SetBody(metric).Post(a.hostPort + url)
+
+			json := jsoniter.ConfigCompatibleWithStandardLibrary
+
+			metricJSON, err := json.Marshal(metric)
+			if err != nil {
+				return err
+			}
+
+			resp, err := client.SetBody(metricJSON).Post(a.hostPort + url)
 			if err != nil {
 				if ctx.Err() != nil {
 					return nil

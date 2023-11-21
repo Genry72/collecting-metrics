@@ -3,8 +3,8 @@ package agent
 import (
 	"context"
 	"fmt"
+	"github.com/Genry72/collecting-metrics/helpers"
 	"github.com/Genry72/collecting-metrics/internal/models"
-	"github.com/fatih/structs"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -65,8 +65,8 @@ type counterMetrics struct {
 func (m *Metrics) getMetrics() ([]*models.Metric, error) {
 	m.sm.RLock()
 	defer m.sm.RUnlock()
-	gaugeMetricData := structs.Map(m.gauge)
-	counterMetricsData := structs.Map(m.counter)
+	gaugeMetricData := helpers.StructToMap(m.gauge)
+	counterMetricsData := helpers.StructToMap(m.counter)
 
 	result := make([]*models.Metric, 0, len(gaugeMetricData)+len(counterMetricsData))
 
