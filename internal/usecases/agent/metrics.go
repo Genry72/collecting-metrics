@@ -104,21 +104,21 @@ func (m *Metrics) getMetrics() ([]*models.Metric, error) {
 
 // Update Запуск обновления метрик с заданным интервалом
 func (m *Metrics) Update(ctx context.Context, pollInterval time.Duration) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	t := time.NewTicker(pollInterval)
+	defer t.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		default:
-			m.updateMetics()
-			time.Sleep(pollInterval)
+		case <-t.C:
+			m.updateMetics(r)
 		}
-	}
 
+	}
 }
 
-func (m *Metrics) updateMetics() {
-	m.sm.Lock()
-	defer m.sm.Unlock()
+func (m *Metrics) updateMetics(r *rand.Rand) {
 	runtime.ReadMemStats(m.rtm)
 	m.gauge.Alloc = m.rtm.Alloc
 	m.gauge.BuckHashSys = m.rtm.BuckHashSys
@@ -148,8 +148,6 @@ func (m *Metrics) updateMetics() {
 	m.gauge.Sys = m.rtm.Sys
 	m.gauge.TotalAlloc = m.rtm.TotalAlloc
 	m.counter.PollCount++
-
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	m.gauge.RandomValue = r.Float64()
 }
