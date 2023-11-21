@@ -32,52 +32,46 @@ func NewAgent(hostPort string, log *zap.Logger, keyHash *string, rateLimit uint6
 
 // SendMetrics Отправка метрик с заданным интервалом
 func (a *Agent) SendMetrics(ctx context.Context, metric *Metrics, reportInterval time.Duration) {
-	go func() {
-		for {
-			time.Sleep(reportInterval)
-
-			select {
-			case <-ctx.Done():
-				a.log.Info("Stop SendMetrics process")
+	defer func() {
+		close(a.ratelimitChan)
+	}()
+	t := time.NewTicker(reportInterval)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			//a.log.Info("Stop SendMetrics process")
+			return
+		case <-t.C:
+			metrics, err := metric.getMetrics()
+			if err != nil {
+				a.log.Error("metric.getMetrics", zap.Error(err))
 				return
-			default:
 			}
 
-			go func() {
-				metrics, err := metric.getMetrics()
-				if err != nil {
-					a.log.Error("metric.getMetrics", zap.Error(err))
-				}
+			if len(metrics) == 0 {
+				return
+			}
 
-				if len(metrics) == 0 {
-					return
-				}
-
-				if err := a.sendByJSONBatch(ctx, metrics); err != nil {
-					a.log.Error("sendByJSONBatch", zap.Error(err))
-					return
-				}
-
-			}()
+			if err := a.sendByJSONBatch(ctx, metrics); err != nil {
+				a.log.Error("sendByJSONBatch", zap.Error(err))
+				return
+			}
 
 		}
 
-	}()
+	}
 
 }
 
 func (a *Agent) sendByJSONBatch(ctx context.Context, metric models.Metrics) error {
-
-	defer func() {
-		<-a.ratelimitChan
-	}()
-
 	select {
 	case <-ctx.Done():
-		close(a.ratelimitChan)
-		a.log.Info("Stop sendByJSONBatch process")
 		return nil
 	case a.ratelimitChan <- struct{}{}:
+		defer func() {
+			<-a.ratelimitChan
+		}()
 		url := "/updates"
 
 		// Индекс - количество выполненных повторов. Значение пауза в секундах
@@ -102,6 +96,9 @@ func (a *Agent) sendByJSONBatch(ctx context.Context, metric models.Metrics) erro
 			client := a.httpClient.R().SetContext(ctx)
 			resp, err := client.SetBody(metric).Post(a.hostPort + url)
 			if err != nil {
+				if ctx.Err() != nil {
+					return nil
+				}
 				a.log.Error("resp", zap.Error(err))
 				// или сеть или тело ответа
 				continue
@@ -123,7 +120,7 @@ func (a *Agent) sendByJSONBatch(ctx context.Context, metric models.Metrics) erro
 			break
 		}
 
-		a.log.Info("metrics send success")
+		//a.log.Info("metrics send success")
 
 		return rErr
 	}

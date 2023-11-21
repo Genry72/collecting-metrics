@@ -40,8 +40,12 @@ func main() {
 
 	metrics := agent.NewMetrics()
 
+	ctx, cansel := context.WithCancel(context.Background())
+
 	// Запускаем обновление раз в 2 секунты
-	metrics.Update(time.Duration(flagPollInterval) * time.Second)
+	go func() {
+		metrics.Update(ctx, time.Duration(flagPollInterval)*time.Second)
+	}()
 
 	var keyHash *string
 
@@ -51,10 +55,10 @@ func main() {
 
 	agentUc := agent.NewAgent("http://"+flagEndpointServer, zapLogger, keyHash, flagRateLimit)
 
-	ctx, cansel := context.WithCancel(context.Background())
-
 	// Запускаем отправку метрик раз 10 секунд
-	agentUc.SendMetrics(ctx, metrics, time.Duration(flagReportInterval)*time.Second)
+	go func() {
+		agentUc.SendMetrics(ctx, metrics, time.Duration(flagReportInterval)*time.Second)
+	}()
 
 	// Graceful shutdown block
 	quit := make(chan os.Signal, 1)
