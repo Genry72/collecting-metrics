@@ -14,7 +14,6 @@ func parseFlags() {
 	flag.IntVar(&flagPollInterval, "p", 2, "poll interval")
 	flag.StringVar(&flagKeyHash, "k", "", "key for hash")
 	flag.Uint64Var(&flagRateLimit, "l", 1, "rate limit")
-	flag.StringVar(&flagPprofAddress, "pprofAddress", "", "address for pprof")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
 

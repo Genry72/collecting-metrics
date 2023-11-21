@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/models"
 	"github.com/fatih/structs"
@@ -102,13 +103,17 @@ func (m *Metrics) getMetrics() ([]*models.Metric, error) {
 }
 
 // Update Запуск обновления метрик с заданным интервалом
-func (m *Metrics) Update(pollInterval time.Duration) {
-	go func() {
-		for {
+func (m *Metrics) Update(ctx context.Context, pollInterval time.Duration) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
 			m.updateMetics()
 			time.Sleep(pollInterval)
 		}
-	}()
+	}
+
 }
 
 func (m *Metrics) updateMetics() {
