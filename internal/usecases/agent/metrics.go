@@ -18,6 +18,7 @@ type Metrics struct {
 	sm      sync.RWMutex
 }
 
+// NewMetrics структура метрики
 func NewMetrics() *Metrics {
 	return &Metrics{
 		gauge:   &gaugeRunTimeMetrics{},

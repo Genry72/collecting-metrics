@@ -19,6 +19,7 @@ type Agent struct {
 	ratelimitChan chan struct{} // Количество одновременно исходящих запросов на сервер
 }
 
+// NewAgent Получение агента для сбора и отправки метрик
 func NewAgent(hostPort string, log *zap.Logger, keyHash *string, rateLimit uint64) *Agent {
 	restyClient := resty.New()
 	restyClient.SetTimeout(time.Second)
@@ -65,6 +66,13 @@ func (a *Agent) SendMetrics(ctx context.Context, metric *Metrics, reportInterval
 
 }
 
+/*
+sendByJSONBatch отправляет метрики через HTTP POST запросы в формате JSON.
+Функция использует рейт-лимит для ограничения количества запросов в единицу времени.
+Если задан ключ, то функция добавляет заголовок с хешем тела запроса.
+Функция выполняет повторные запросы в случае ошибки, используя заданные интервалы повторов.
+Возвращает ошибку, если все повторные запросы неудачны или если статус ответа не является успешным.
+*/
 func (a *Agent) sendByJSONBatch(ctx context.Context, metric models.Metrics) error {
 	select {
 	case <-ctx.Done():

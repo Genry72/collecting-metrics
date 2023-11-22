@@ -3,7 +3,7 @@ package helpers
 import "reflect"
 
 /*
-StructToMap Преобразование стурктуры в map[string]interface{}. Клюс это имя поля, а
+StructToMap Преобразование стурктуры в map[string]interface{}. Ключ это имя поля, а
 значение - значение поля структуры
 */
 func StructToMap(data interface{}) map[string]interface{} {

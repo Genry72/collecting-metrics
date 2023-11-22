@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// RunSaveToPermanentStorage запись метрик в файл
 func (uc *Server) RunSaveToPermanentStorage(ctx context.Context) {
 	fsconf := uc.permanentStorage.GetConfig()
 	if !fsconf.Enabled {
@@ -48,6 +49,7 @@ func (uc *Server) LoadMetricFromPermanentStore(ctx context.Context) error {
 	return nil
 }
 
+// SaveToPermanentStorage запись всех имеющихся метрик из памяти в фйайл
 func (uc *Server) SaveToPermanentStorage(ctx context.Context) error {
 	if !uc.permanentStorage.GetConfig().Enabled {
 		return nil

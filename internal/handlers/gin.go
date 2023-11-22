@@ -9,6 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// RunServer Функция использует фреймворк Gin для обработки HTTP-запросов и логирования.
+// Входные параметры:
+// - hostPort string: хост и порт, на котором будет запущен сервер.
+// - password *string: пароль для доступа к серверу (необязательный параметр).
+// Возвращаемое значение:
+// - error: ошибка, возникающая при запуске сервера.
 func (h *Handler) RunServer(hostPort string, password *string) error {
 	gin.SetMode(gin.ReleaseMode)
 
@@ -28,6 +34,7 @@ func (h *Handler) RunServer(hostPort string, password *string) error {
 	return nil
 }
 
+// setupRoute Установка хендлеров
 func (h *Handler) setupRoute(g *gin.Engine, password *string) {
 	g.Use(gzip.Gzip(h.log))
 	if password != nil {

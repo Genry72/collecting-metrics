@@ -18,6 +18,7 @@ type PGStorage struct {
 	log  *zap.Logger
 }
 
+// NewPGStorage возвращает хранилище postgresql
 func NewPGStorage(dsn string, log *zap.Logger) (*PGStorage, error) {
 	db, err := sqlx.Connect("postgres", dsn)
 	if err != nil {
@@ -43,6 +44,7 @@ func NewPGStorage(dsn string, log *zap.Logger) (*PGStorage, error) {
 	return pg, nil
 }
 
+// Stop остановка работы с базой
 func (pg *PGStorage) Stop() {
 	if err := pg.conn.Close(); err != nil {
 		pg.log.Error("g.conn.Close", zap.Error(err))
@@ -52,6 +54,7 @@ func (pg *PGStorage) Stop() {
 	pg.log.Info("Database success closed")
 }
 
+// Ping проверка подключения
 func (pg *PGStorage) Ping() error {
 	if pg == nil {
 		return fmt.Errorf("database not connected")
@@ -59,6 +62,7 @@ func (pg *PGStorage) Ping() error {
 	return pg.conn.Ping()
 }
 
+// migrate выполнение первичной миграции
 func (pg *PGStorage) migrate() error {
 	tx, err := pg.conn.Begin()
 	if err != nil {
@@ -84,6 +88,7 @@ func (pg *PGStorage) migrate() error {
 	return nil
 }
 
+// SetMetric установка/добавление метрик
 func (pg *PGStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) error {
 	query := `
 INSERT INTO metrics (name,
@@ -156,6 +161,7 @@ ON CONFLICT (name, type)
 	return nil
 }
 
+// GetMetricValue получение значения метрики
 func (pg *PGStorage) GetMetricValue(ctx context.Context,
 	metricType models.MetricType, metricName models.MetricName) (*models.Metric, error) {
 	if err := checkMetricType(metricType); err != nil {
@@ -183,6 +189,7 @@ where name = $1
 	return &result, nil
 }
 
+// GetAllMetrics Получение всех метрик
 func (pg *PGStorage) GetAllMetrics(ctx context.Context) ([]*models.Metric, error) {
 	query := `
 select name, type, delta, value
@@ -196,6 +203,7 @@ from metrics
 	return result, nil
 }
 
+// SetAllMetrics добавление/изменение метрик
 func (pg *PGStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metric) error {
 	for i := range metrics {
 		if err := pg.SetMetric(ctx, metrics[i]); err != nil {
@@ -205,6 +213,7 @@ func (pg *PGStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metric
 	return nil
 }
 
+// GetConfig Получение конфигурации
 func (pg *PGStorage) GetConfig() *filestorage.StorageConf {
 	return &filestorage.StorageConf{
 		StoreInterval:   0,
@@ -214,6 +223,7 @@ func (pg *PGStorage) GetConfig() *filestorage.StorageConf {
 	}
 }
 
+// checkMetricType Проверка доступных типов метрик
 func checkMetricType(metricType models.MetricType) error {
 	switch metricType {
 	case models.MetricTypeCounter:

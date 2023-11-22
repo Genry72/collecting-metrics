@@ -7,6 +7,7 @@ import (
 	"github.com/Genry72/collecting-metrics/internal/models"
 )
 
+// GetAllMetrics получение всех метрик из хранилища
 func (fs *FileStorage) GetAllMetrics(ctx context.Context) ([]*models.Metric, error) {
 	fs.mx.RLock()
 	defer fs.mx.RUnlock()

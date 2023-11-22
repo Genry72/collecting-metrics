@@ -26,6 +26,7 @@ func NewMemStorage(log *zap.Logger) *MemStorage {
 	}
 }
 
+// SetMetric добавление/изменение метрики в хранилище
 func (m *MemStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) error {
 
 	for i := range metrics {
@@ -65,6 +66,7 @@ func (m *MemStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) e
 	return nil
 }
 
+// GetMetricValue получение значения метрики
 func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.MetricType, metricName models.MetricName) (*models.Metric, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
@@ -102,6 +104,7 @@ func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.Metri
 	return result, nil
 }
 
+// GetAllMetrics получение всех метрик
 func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]*models.Metric, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
@@ -131,6 +134,7 @@ func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]*models.Metric, error
 
 }
 
+// SetAllMetrics Добавление/изменение метрик
 func (m *MemStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metric) error {
 	for i := range metrics {
 		if err := m.SetMetric(ctx, metrics[i]); err != nil {
@@ -140,6 +144,7 @@ func (m *MemStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metric
 	return nil
 }
 
+// checkContext проверяет контекст и возвращает ошибку ErrDeadlineContext, если контекст истек.
 func checkContext(ctx context.Context) error {
 	select {
 	case <-ctx.Done():

@@ -12,6 +12,7 @@ import (
 	"strconv"
 )
 
+// Server структура для работы с метриками
 type Server struct {
 	storage          repositories.Repositories
 	permanentStorage repositories.PermanentStorage // Работа с файлом
@@ -19,6 +20,7 @@ type Server struct {
 	log              *zap.Logger
 }
 
+// NewServerUc возвращает структуру для работы с метриками
 func NewServerUc(repo repositories.Repositories, permStor repositories.PermanentStorage, database repositories.DatabaseStorage, log *zap.Logger) *Server {
 	return &Server{
 		storage:          repo,
@@ -28,6 +30,7 @@ func NewServerUc(repo repositories.Repositories, permStor repositories.Permanent
 	}
 }
 
+// SetMetric добавление/изменение метрики
 func (uc *Server) SetMetric(ctx context.Context, metrics ...*models.Metric) (int, error) {
 
 	for i := range metrics {
@@ -55,6 +58,7 @@ func (uc *Server) SetMetric(ctx context.Context, metrics ...*models.Metric) (int
 	return http.StatusOK, nil
 }
 
+// GetMetricValue Получение значения метрики
 func (uc *Server) GetMetricValue(ctx context.Context, metric *models.Metric) (*models.Metric, int, error) {
 
 	code, err := checkMetricParams(metric, false)
@@ -71,6 +75,7 @@ func (uc *Server) GetMetricValue(ctx context.Context, metric *models.Metric) (*m
 	return result, http.StatusOK, nil
 }
 
+// GetAllMetrics Получение всех метрик
 func (uc *Server) GetAllMetrics(ctx context.Context) (map[models.MetricName]interface{}, int, error) {
 	metrics, err := uc.storage.GetAllMetrics(ctx)
 	if err != nil {

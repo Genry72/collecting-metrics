@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// SetAllMetrics добавление/изменение значения метрик
 func (fs *FileStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metric) error {
 	fs.mx.Lock()
 	if err := fs.file.Truncate(0); err != nil {
@@ -31,6 +32,7 @@ func (fs *FileStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metr
 	return nil
 }
 
+// Write запись в файл
 func (fs *FileStorage) write(ctx context.Context, metric *models.Metric) error {
 	fs.mx.Lock()
 	defer fs.mx.Unlock()

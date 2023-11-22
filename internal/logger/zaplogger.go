@@ -7,6 +7,15 @@ import (
 	"os"
 )
 
+// NewZapLogger создает новый экземпляр логгера типа *zap.Logger.
+// Принимает аргумент level - уровень логирования в виде строки.
+// Возвращает указатель на *zap.Logger.
+//
+// Аргументы:
+// - level: строка, уровень логирования
+//
+// Пример использования:
+// logger := NewZapLogger("info")
 func NewZapLogger(level string) *zap.Logger {
 
 	cfg := zap.NewProductionEncoderConfig()

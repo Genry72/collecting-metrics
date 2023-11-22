@@ -11,11 +11,13 @@ import (
 	"net/http"
 )
 
+// Handler структура для вызова методов сервера
 type Handler struct {
 	useCases *server.Server
 	log      *zap.Logger
 }
 
+// NewServer создает экземпляр сервера
 func NewServer(uc *server.Server, logger *zap.Logger) *Handler {
 	return &Handler{
 		useCases: uc,
@@ -23,6 +25,7 @@ func NewServer(uc *server.Server, logger *zap.Logger) *Handler {
 	}
 }
 
+// setMetricsText установка значения метрики
 func (h *Handler) setMetricsText(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -100,6 +103,7 @@ func (h *Handler) setMetricsJSON(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// getMetricText получение значения метрики в текстовом формате
 func (h *Handler) getMetricText(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -130,6 +134,7 @@ func (h *Handler) getMetricText(c *gin.Context) {
 	c.String(http.StatusOK, "%v", result)
 }
 
+// getMetricsJSON получение значения метрики
 func (h *Handler) getMetricsJSON(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -151,7 +156,7 @@ func (h *Handler) getMetricsJSON(c *gin.Context) {
 	c.JSON(status, val)
 }
 
-// Шаблон для возврата html с метриками
+// Шаблон для возврата html функции getAllMetrics
 var tmpl = template.Must(template.New("metrics").Parse(`
 	<!DOCTYPE html>
 	<html>
@@ -171,6 +176,7 @@ var tmpl = template.Must(template.New("metrics").Parse(`
 	</html>
 `))
 
+// getAllMetrics Получение всех метрик в формате html
 func (h *Handler) getAllMetrics(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -193,6 +199,7 @@ func (h *Handler) getAllMetrics(c *gin.Context) {
 	c.Data(http.StatusOK, "text/html; charset=utf-8", b.Bytes())
 }
 
+// pingDatabase Проверка доступности базы данных
 func (h *Handler) pingDatabase(c *gin.Context) {
 
 	c.Header("Content-Type", "text/html")

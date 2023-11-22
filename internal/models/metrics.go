@@ -24,6 +24,7 @@ type Metric struct {
 	ValueText string     `json:"-" uri:"value"`                                // Значение метрики в случае передачи GET запросом
 }
 
+// Metrics список метрик
 type Metrics []*Metric
 
 // Encode Хеш SHA256 на основе ключа
