@@ -37,7 +37,7 @@ func BenchmarkHandlers(b *testing.B) {
 		metricCount int // Количество метрик, необходимых для теста
 		method      string
 		// Функция для генерации URL запроса, необходима для получения случайного значения типа и значения метрики
-		generateUrl func([]*models.Metric) string
+		generateURL func([]*models.Metric) string
 		// Генерация тела запроса
 		body func([]*models.Metric) io.Reader
 		// true говорит о том что это проверка загруженных метрик, для этого данные метрики сначала нужно загрузить
@@ -47,14 +47,14 @@ func BenchmarkHandlers(b *testing.B) {
 	tests := []args{
 		{ // Получение всех метрик
 			method: http.MethodGet,
-			generateUrl: func(_ []*models.Metric) string {
+			generateURL: func(_ []*models.Metric) string {
 				return "/"
 			},
 			metricCount: 1,
 		},
 		{ // Добавление списка метрик
 			method: http.MethodPost,
-			generateUrl: func(_ []*models.Metric) string {
+			generateURL: func(_ []*models.Metric) string {
 				return "/updates/"
 			},
 			body: func(metrics []*models.Metric) io.Reader {
@@ -69,7 +69,7 @@ func BenchmarkHandlers(b *testing.B) {
 		},
 		{ // Добавление одной метрики json
 			method: http.MethodPost,
-			generateUrl: func(_ []*models.Metric) string {
+			generateURL: func(_ []*models.Metric) string {
 				return "/update/"
 			},
 			body: func(metrics []*models.Metric) io.Reader {
@@ -84,7 +84,7 @@ func BenchmarkHandlers(b *testing.B) {
 		},
 		{ // Получение метрики
 			method: http.MethodPost,
-			generateUrl: func(_ []*models.Metric) string {
+			generateURL: func(_ []*models.Metric) string {
 				return "/value/"
 			},
 			body: func(metrics []*models.Metric) io.Reader {
@@ -100,7 +100,7 @@ func BenchmarkHandlers(b *testing.B) {
 		},
 		{ // Получение метрики
 			method: http.MethodGet,
-			generateUrl: func(metrics []*models.Metric) string {
+			generateURL: func(metrics []*models.Metric) string {
 				return fmt.Sprintf("/value/%s/%s", metrics[0].MType, metrics[0].ID)
 			},
 			metricCount: 1,
@@ -121,10 +121,10 @@ func BenchmarkHandlers(b *testing.B) {
 				metrics := generateMetric(tt.metricCount, rand.New(rand.NewSource(time.Now().UnixNano())))
 				runtime.MemProfileRate = 1
 				if tt.getMetric {
-					runBanchHandlers(ginRoute, m, tt.method, tt.generateUrl, tt.body)
+					runBanchHandlers(ginRoute, m, tt.method, tt.generateURL, tt.body)
 					continue
 				}
-				runBanchHandlers(ginRoute, metrics, tt.method, tt.generateUrl, tt.body)
+				runBanchHandlers(ginRoute, metrics, tt.method, tt.generateURL, tt.body)
 				m = metrics
 			}
 		}
@@ -136,7 +136,7 @@ func runBanchHandlers(
 	ginRoute *gin.Engine,
 	metrics []*models.Metric,
 	method string,
-	generateUrl func([]*models.Metric) string,
+	generateURL func([]*models.Metric) string,
 	bodyFunc func(metrics []*models.Metric) io.Reader) {
 	runtime.MemProfileRate = 0
 
@@ -150,7 +150,7 @@ func runBanchHandlers(
 
 	r := httptest.NewRequest(
 		method,
-		generateUrl(metrics),
+		generateURL(metrics),
 		body)
 
 	runtime.MemProfileRate = 1
