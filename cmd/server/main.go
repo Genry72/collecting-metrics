@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/handlers"
 	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/Genry72/collecting-metrics/internal/repositories/filestorage"
@@ -22,6 +23,13 @@ var (
 	flagRestore         bool
 	flagPgDsn           string
 	flagKeyHash         string
+)
+
+// Информация о сборке
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
 )
 
 const (
@@ -48,6 +56,11 @@ const (
 )
 
 func main() {
+	// Печать информации о сборке
+	fmt.Println("Build version:", printBuildInfo(buildVersion))
+	fmt.Println("Build date:", printBuildInfo(buildDate))
+	fmt.Println("Build commit:", printBuildInfo(buildCommit))
+
 	zapLogger := logger.NewZapLogger("info")
 
 	defer func() {
@@ -140,4 +153,11 @@ func main() {
 		zapLogger.Error(err.Error())
 		return
 	}
+}
+
+func printBuildInfo(info string) string {
+	if info != "" {
+		return info
+	}
+	return "N/A"
 }

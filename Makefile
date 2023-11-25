@@ -1,10 +1,7 @@
 port = 8080
+buildFlag = -ldflags="-X 'main.buildVersion=`git describe --tags --abbrev=0`' -X 'main.buildDate=`date`' -X 'main.buildCommit=`git rev-parse HEAD`'"
 .PHONY: test
-test:
-	go build -o ./cmd/server/ ./cmd/server/
-	chmod +x ./cmd/server
-	go build -o ./cmd/agent/ ./cmd/agent/
-	chmod +x ./cmd/agent
+test: build
 	./metricstest -test.v -test.run=^TestIteration1$$  -binary-path=cmd/server/server   -server-port=$(port)
 	./metricstest -test.v -test.run=^TestIteration2  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)
 	./metricstest -test.v -test.run=^TestIteration3  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)
@@ -22,13 +19,12 @@ test:
 	./metricstest -test.v -test.run=^TestIteration15  -binary-path=cmd/server/server  -agent-binary-path=cmd/agent/agent  -source-path=.  -server-port=$(port)  -file-storage-path="./tests.txt"  -database-dsn="postgres://postgres:pass@localhost:5432/metrics?sslmode=disable"  -key="superKey"
 
 .PHONY: runServer
-runServer:
-	go run ./cmd/server -a ":$(port)" -f "./tests.txt" -d "postgres://postgres:pass@localhost:5432/metrics?sslmode=disable" -k "superKey"
+runServer: build
+	./cmd/server/server -a ":$(port)" -f "./tests.txt" -d "postgres://postgres:pass@localhost:5432/metrics?sslmode=disable" -k "superKey"
 
 .PHONY: runAgent
-runAgent:
-	go build -o ./cmd/agent/ ./cmd/agent/ && \
-	./cmd/agent/agent -a ":$(port)" -r 10 -p 0 -k "superKey" -l 1 -pprofAddress ":8080"
+runAgent: build
+	./cmd/agent/agent -a ":$(port)" -r 10 -p 0 -k "superKey" -l 1
 
 .PHONY: cover
 cover:
@@ -38,9 +34,9 @@ cover:
 
 .PHONY: build
 build:
-	go build -o ./cmd/server/ ./cmd/server/
+	go build $(buildFlag) -o ./cmd/server/ ./cmd/server/
 	chmod +x ./cmd/server
-	go build -o ./cmd/agent/ ./cmd/agent/
+	go build $(buildFlag) -o ./cmd/agent/ ./cmd/agent/
 	chmod +x ./cmd/agent
 
 .PHONY: mytest
@@ -50,21 +46,13 @@ mytest:
 
 # Профилирование
 .PHONY: getBasePprof
-getBasePprof:
-	go build -o ./cmd/server/ ./cmd/server/
-	chmod +x ./cmd/server
+getBasePprof: build
 	cd ./internal/handlers && go test -bench ./... -memprofile=../../cmd/server/profiles/base.pprof
-	go build -o ./cmd/agent/ ./cmd/agent/
-	chmod +x ./cmd/agent
 	cd ./cmd/agent && go test -bench ./... -memprofile=./profiles/base.pprof
 
 .PHONY: getResultPprof
-getResultPprof:
-	go build -o ./cmd/server/ ./cmd/server/
-	chmod +x ./cmd/server
+getResultPprof: build
 	cd ./internal/handlers && go test -bench ./... -memprofile=../../cmd/server/profiles/result.pprof
-	go build -o ./cmd/agent/ ./cmd/agent/
-	chmod +x ./cmd/agent
 	cd ./cmd/agent && go test -bench ./... -memprofile=./profiles/result.pprof
 
 .PHONY: showServerBaseProfile
