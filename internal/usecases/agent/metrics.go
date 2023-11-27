@@ -1,9 +1,10 @@
 package agent
 
 import (
+	"context"
 	"fmt"
+	"github.com/Genry72/collecting-metrics/helpers"
 	"github.com/Genry72/collecting-metrics/internal/models"
-	"github.com/fatih/structs"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -17,6 +18,7 @@ type Metrics struct {
 	sm      sync.RWMutex
 }
 
+// NewMetrics структура метрики
 func NewMetrics() *Metrics {
 	return &Metrics{
 		gauge:   &gaugeRunTimeMetrics{},
@@ -64,8 +66,8 @@ type counterMetrics struct {
 func (m *Metrics) getMetrics() ([]*models.Metric, error) {
 	m.sm.RLock()
 	defer m.sm.RUnlock()
-	gaugeMetricData := structs.Map(m.gauge)
-	counterMetricsData := structs.Map(m.counter)
+	gaugeMetricData := helpers.StructToMap(m.gauge)
+	counterMetricsData := helpers.StructToMap(m.counter)
 
 	result := make([]*models.Metric, 0, len(gaugeMetricData)+len(counterMetricsData))
 
@@ -102,18 +104,22 @@ func (m *Metrics) getMetrics() ([]*models.Metric, error) {
 }
 
 // Update Запуск обновления метрик с заданным интервалом
-func (m *Metrics) Update(pollInterval time.Duration) {
-	go func() {
-		for {
-			m.updateMetics()
-			time.Sleep(pollInterval)
+func (m *Metrics) Update(ctx context.Context, pollInterval time.Duration) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	t := time.NewTicker(pollInterval)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			m.updateMetics(r)
 		}
-	}()
+
+	}
 }
 
-func (m *Metrics) updateMetics() {
-	m.sm.Lock()
-	defer m.sm.Unlock()
+func (m *Metrics) updateMetics(r *rand.Rand) {
 	runtime.ReadMemStats(m.rtm)
 	m.gauge.Alloc = m.rtm.Alloc
 	m.gauge.BuckHashSys = m.rtm.BuckHashSys
@@ -143,8 +149,6 @@ func (m *Metrics) updateMetics() {
 	m.gauge.Sys = m.rtm.Sys
 	m.gauge.TotalAlloc = m.rtm.TotalAlloc
 	m.counter.PollCount++
-
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	m.gauge.RandomValue = r.Float64()
 }

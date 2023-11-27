@@ -1,19 +1,23 @@
 package handlers
 
 import (
-	"encoding/json"
+	"bytes"
 	"github.com/Genry72/collecting-metrics/internal/models"
 	"github.com/Genry72/collecting-metrics/internal/usecases/server"
 	"github.com/gin-gonic/gin"
+	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
+	"html/template"
 	"net/http"
 )
 
+// Handler структура для вызова методов сервера
 type Handler struct {
 	useCases *server.Server
 	log      *zap.Logger
 }
 
+// NewServer создает экземпляр сервера
 func NewServer(uc *server.Server, logger *zap.Logger) *Handler {
 	return &Handler{
 		useCases: uc,
@@ -21,6 +25,7 @@ func NewServer(uc *server.Server, logger *zap.Logger) *Handler {
 	}
 }
 
+// setMetricsText установка значения метрики
 func (h *Handler) setMetricsText(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -31,14 +36,14 @@ func (h *Handler) setMetricsText(c *gin.Context) {
 		return
 	}
 
-	_, status, err := h.useCases.SetMetric(ctx, metricParams)
+	status, err := h.useCases.SetMetric(ctx, metricParams)
 	if err != nil {
 		h.log.Error(" h.useCases.SetMetric", zap.Error(err))
 		c.String(status, err.Error())
 		return
 	}
 
-	c.String(status, "set metric success")
+	c.Status(http.StatusOK)
 
 }
 
@@ -48,48 +53,57 @@ func (h *Handler) setMetricJSON(c *gin.Context) {
 
 	metricParams := &models.Metric{}
 
-	if err := c.ShouldBindJSON(metricParams); err != nil {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
+	if err := json.NewDecoder(c.Request.Body).Decode(metricParams); err != nil {
 		h.log.Error("ShouldBindJSON", zap.Error(err))
 		c.String(http.StatusBadRequest, models.ErrBadBody.Error())
 		return
 	}
 
-	result, status, err := h.useCases.SetMetric(ctx, metricParams)
+	status, err := h.useCases.SetMetric(ctx, metricParams)
 	if err != nil {
 		h.log.Error("h.useCases.SetMetric", zap.Error(err))
 		c.JSON(status, err.Error())
 		return
 	}
 
-	c.JSON(status, result[0])
+	c.Status(status)
 }
 
 // setMetricsJSON отправка метрик списком
 func (h *Handler) setMetricsJSON(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	metricParams := make([]*models.Metric, 0)
+	metricParams := []*models.Metric{}
 
-	if err := c.ShouldBindJSON(&metricParams); err != nil {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
+	if err := json.NewDecoder(c.Request.Body).Decode(&metricParams); err != nil {
 		h.log.Error("ShouldBindJSON", zap.Error(err))
-		c.String(http.StatusBadRequest, models.ErrBadBody.Error())
+
+		if err := c.AbortWithError(http.StatusBadRequest, models.ErrBadBody); err != nil {
+			h.log.Error("c.AbortWithError", zap.Error(err))
+		}
 		return
 	}
 
-	_, status, err := h.useCases.SetMetric(ctx, metricParams...)
+	status, err := h.useCases.SetMetric(ctx, metricParams...)
+
 	if err != nil {
 		h.log.Error("h.useCases.SetMetric", zap.Error(err))
-		c.JSON(status, err.Error())
+
+		if err := c.AbortWithError(status, models.ErrBadBody); err != nil {
+			h.log.Error("c.AbortWithError", zap.Error(err))
+		}
+
 		return
 	}
-	//if len(result) == 1 {
-	//	c.JSON(status, result[0])
-	//	return
-	//}
-	//c.JSON(status, result[0]) // todo когда возвращаю список обновленных метрик, тесты не проходят
-	c.String(200, "")
+
+	c.Status(http.StatusOK)
 }
 
+// getMetricText получение значения метрики в текстовом формате
 func (h *Handler) getMetricText(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -120,6 +134,7 @@ func (h *Handler) getMetricText(c *gin.Context) {
 	c.String(http.StatusOK, "%v", result)
 }
 
+// getMetricsJSON получение значения метрики
 func (h *Handler) getMetricsJSON(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -138,18 +153,30 @@ func (h *Handler) getMetricsJSON(c *gin.Context) {
 		return
 	}
 
-	valByte, err := json.Marshal(val)
-	if err != nil {
-		h.log.Error("json.Marshal", zap.Error(err))
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	c.Header("Content-Type", "application/json")
-
-	c.String(status, string(valByte))
+	c.JSON(status, val)
 }
 
+// Шаблон для возврата html функции getAllMetrics
+var tmpl = template.Must(template.New("metrics").Parse(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<title>all metrics</title>
+	</head>
+	<body>
+		<h1>all metrics</h1>
+		<ul>
+			{{range $key, $value := .}}
+			<li>
+				<strong>{{$key}}:</strong> {{$value}}
+			</li>
+			{{end}}
+		</ul>
+	</body>
+	</html>
+`))
+
+// getAllMetrics Получение всех метрик в формате html
 func (h *Handler) getAllMetrics(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -162,9 +189,17 @@ func (h *Handler) getAllMetrics(c *gin.Context) {
 		return
 	}
 
-	c.String(status, "%v", val)
+	b := bytes.Buffer{}
+
+	err = tmpl.Execute(&b, val)
+	if err != nil {
+		panic(err)
+	}
+
+	c.Data(http.StatusOK, "text/html; charset=utf-8", b.Bytes())
 }
 
+// pingDatabase Проверка доступности базы данных
 func (h *Handler) pingDatabase(c *gin.Context) {
 
 	c.Header("Content-Type", "text/html")

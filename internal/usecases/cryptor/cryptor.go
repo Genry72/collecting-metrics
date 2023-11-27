@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-// Encrypt Кодируем
+// Encrypt Кодируем байтовый массив
 func Encrypt(value []byte, password string) (string, error) {
 
 	aesgcm, nonce, err := getGcmAndNonce(password)
@@ -19,7 +19,7 @@ func Encrypt(value []byte, password string) (string, error) {
 	return hex.EncodeToString(aesgcm.Seal(nil, nonce, value, nil)), nil
 }
 
-// Decrypt Декодируем
+// Decrypt Декодируем байтовый массив
 func Decrypt(value, password string) ([]byte, error) {
 	aesgcm, nonce, err := getGcmAndNonce(password)
 	if err != nil {

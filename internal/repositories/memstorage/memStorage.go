@@ -26,14 +26,14 @@ func NewMemStorage(log *zap.Logger) *MemStorage {
 	}
 }
 
-func (m *MemStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) ([]*models.Metric, error) {
-	result := make([]*models.Metric, 0, len(metrics))
+// SetMetric добавление/изменение метрики в хранилище
+func (m *MemStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) error {
 
 	for i := range metrics {
 		metric := metrics[i]
 
 		if err := checkContext(ctx); err != nil {
-			return nil, fmt.Errorf("checkContext: %w", err)
+			return fmt.Errorf("checkContext: %w", err)
 		}
 
 		switch metric.MType {
@@ -60,17 +60,13 @@ func (m *MemStorage) SetMetric(ctx context.Context, metrics ...*models.Metric) (
 
 			m.mx.Unlock()
 		}
-		mm, err := m.GetMetricValue(ctx, metric.MType, metric.ID)
-		if err != nil {
-			return nil, fmt.Errorf("GetMetricValue: %w", err)
-		}
-		result = append(result, mm)
+
 	}
 
-	return result, nil
-
+	return nil
 }
 
+// GetMetricValue получение значения метрики
 func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.MetricType, metricName models.MetricName) (*models.Metric, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
@@ -101,7 +97,6 @@ func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.Metri
 		}
 
 		result = val
-
 	default:
 		return nil, fmt.Errorf("%w: %s", models.ErrBadMetricType, metricType)
 	}
@@ -109,6 +104,7 @@ func (m *MemStorage) GetMetricValue(ctx context.Context, metricType models.Metri
 	return result, nil
 }
 
+// GetAllMetrics получение всех метрик
 func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]*models.Metric, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
@@ -138,15 +134,17 @@ func (m *MemStorage) GetAllMetrics(ctx context.Context) ([]*models.Metric, error
 
 }
 
+// SetAllMetrics Добавление/изменение метрик
 func (m *MemStorage) SetAllMetrics(ctx context.Context, metrics []*models.Metric) error {
 	for i := range metrics {
-		if _, err := m.SetMetric(ctx, metrics[i]); err != nil {
+		if err := m.SetMetric(ctx, metrics[i]); err != nil {
 			return fmt.Errorf("SetMetric: %w", err)
 		}
 	}
 	return nil
 }
 
+// checkContext проверяет контекст и возвращает ошибку ErrDeadlineContext, если контекст истек.
 func checkContext(ctx context.Context) error {
 	select {
 	case <-ctx.Done():

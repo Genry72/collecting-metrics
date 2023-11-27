@@ -16,6 +16,7 @@ type crypt struct {
 	log      *zap.Logger
 }
 
+// Write добавляет заголовок HashSHA256 со значением хеша тела ответа
 func (c *crypt) Write(b []byte) (int, error) {
 	hashFromBody, err := cryptor.Encrypt(b, c.password)
 	if err != nil {

@@ -27,8 +27,9 @@ func newGzipWriter(w gin.ResponseWriter) (*gzipWriter, error) {
 	}, nil
 }
 
+// Write Имплементация ResponseWriter. Добавляеет заголовок Content = gzip
 func (g *gzipWriter) Write(b []byte) (int, error) {
-	//if len(b) > 1400 { // todo так не работает не разобрался почему
+	//if len(b) > 1400 {
 	//	g.Header().Set("Content-Encoding", "gzip")
 	//	return g.gzWR.Write(b)
 	//}

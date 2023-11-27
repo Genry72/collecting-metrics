@@ -26,6 +26,7 @@ type StorageConf struct {
 	Enabled         bool // Флаг, указывающий, нужно ли сохранять метрики в storage
 }
 
+// NewPermanentStorageConf возвращает конфигурацию файлового хранилища
 func NewPermanentStorageConf(storeInterval int, fileStorageFile string, restore bool) *StorageConf {
 	return &StorageConf{
 		StoreInterval:   storeInterval,
@@ -35,6 +36,7 @@ func NewPermanentStorageConf(storeInterval int, fileStorageFile string, restore 
 	}
 }
 
+// NewFileStorage фозвращает файловое хранилище
 func NewFileStorage(conf *StorageConf, log *zap.Logger) (*FileStorage, error) {
 	file, err := os.OpenFile(conf.FileStorageFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
@@ -51,10 +53,12 @@ func NewFileStorage(conf *StorageConf, log *zap.Logger) (*FileStorage, error) {
 	return fs, nil
 }
 
+// GetConfig получение конфигурации
 func (fs *FileStorage) GetConfig() *StorageConf {
 	return fs.conf
 }
 
+// Stop остановка работы хранилища
 func (fs *FileStorage) Stop() {
 
 	fs.mx.Lock()

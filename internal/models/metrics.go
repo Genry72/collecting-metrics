@@ -1,9 +1,9 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/usecases/cryptor"
+	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -24,10 +24,12 @@ type Metric struct {
 	ValueText string     `json:"-" uri:"value"`                                // Значение метрики в случае передачи GET запросом
 }
 
+// Metrics список метрик
 type Metrics []*Metric
 
 // Encode Хеш SHA256 на основе ключа
 func (m *Metrics) Encode(password string) (string, error) {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	metricByte, err := json.Marshal(m)
 	if err != nil {
 		return "", fmt.Errorf("json.Marshal: %w", err)

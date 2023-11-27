@@ -27,7 +27,8 @@ runServer:
 
 .PHONY: runAgent
 runAgent:
-	go run ./cmd/agent -a ":$(port)" -r 10 -p 2 -k "superKey" -l 1
+	go build -o ./cmd/agent/ ./cmd/agent/ && \
+	./cmd/agent/agent -a ":$(port)" -r 10 -p 0 -k "superKey" -l 1 -pprofAddress ":8080"
 
 .PHONY: cover
 cover:
@@ -45,3 +46,39 @@ build:
 .PHONY: mytest
 mytest:
 	go test -v -count=1 ./...
+
+
+# Профилирование
+.PHONY: getBasePprof
+getBasePprof:
+	go build -o ./cmd/server/ ./cmd/server/
+	chmod +x ./cmd/server
+	cd ./internal/handlers && go test -bench ./... -memprofile=../../cmd/server/profiles/base.pprof
+	go build -o ./cmd/agent/ ./cmd/agent/
+	chmod +x ./cmd/agent
+	cd ./cmd/agent && go test -bench ./... -memprofile=./profiles/base.pprof
+
+.PHONY: getResultPprof
+getResultPprof:
+	go build -o ./cmd/server/ ./cmd/server/
+	chmod +x ./cmd/server
+	cd ./internal/handlers && go test -bench ./... -memprofile=../../cmd/server/profiles/result.pprof
+	go build -o ./cmd/agent/ ./cmd/agent/
+	chmod +x ./cmd/agent
+	cd ./cmd/agent && go test -bench ./... -memprofile=./profiles/result.pprof
+
+.PHONY: showServerBaseProfile
+showServerProfile:
+	go tool pprof -http=":9090" ./cmd/server/profiles/base.pprof ./cmd/server/server
+
+.PHONY: showServerResultProfile
+showServerResultProfile:
+	go tool pprof -http=":9090" ./cmd/server/profiles/result.pprof ./cmd/server/server
+
+.PHONY: showAgentBaseProfile
+showAgentBaseProfile:
+	go tool pprof -http=":9090" ./cmd/agent/profiles/base.pprof ./cmd/agent/agent
+
+.PHONY: showAgentResultProfile
+showAgentResultProfile:
+	go tool pprof -http=":9090" ./cmd/agent/profiles/result.pprof ./cmd/agent/agent

@@ -1,3 +1,5 @@
+// Файл errors.go содержит определение переменных с ошибками, используемыми в программе.
+
 package models
 
 import (
@@ -22,10 +24,12 @@ type RetryError struct {
 	err error
 }
 
+// Error имплементация интерфейса error для печати ошибки
 func (re *RetryError) Error() string {
 	return re.err.Error()
 }
 
+// NewRetryError возвращает ошибку типа RetryError
 func NewRetryError(err error) error {
 	return &RetryError{
 		err: err,
