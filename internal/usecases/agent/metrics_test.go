@@ -17,12 +17,12 @@ func BenchmarkGetMetrics(b *testing.B) {
 	b.ResetTimer()
 	b.Run("new", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			m.getMetricsNew()
+			_, _ = m.getMetricsNew()
 		}
 	})
 	b.Run("old", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			m.getMetricsOld()
+			_, _ = m.getMetricsOld()
 		}
 	})
 

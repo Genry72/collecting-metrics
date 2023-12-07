@@ -1,0 +1,87 @@
+# https://github.com/golangci/golangci-lint
+
+run:
+  timeout: 1m
+  tests: true
+
+# output configuration options
+output:
+  # sorts results by: filepath, line and column
+  sort-results: true
+
+# all available settings of specific linters
+linters-settings:
+  #  funlen:
+  #    lines: 60
+  #    statements: 40
+  gocognit:
+    # minimal code complexity to report, 30 by default (but we recommend 10-20)
+    min-complexity: 15
+  nestif:
+    # minimal complexity of if statements to report, 5 by default
+    min-complexity: 4
+  gocyclo:
+    # minimal code complexity to report, 30 by default (but we recommend 10-20)
+    min-complexity: 15
+
+linters:
+  disable-all: true
+  enable:
+    - asciicheck
+    - bodyclose
+    - deadcode
+    - depguard
+    - dogsled
+    - dupl
+    - errcheck
+    - exportloopref
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - goerr113
+    - gofmt
+    - gofumpt
+    - goheader
+    - goimports
+    - golint
+    - gomnd
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - interfacer
+    - lll
+    - maligned
+    - misspell
+    - nakedret
+    - nestif
+    - noctx
+    - nolintlint
+    - prealloc
+    - rowserrcheck
+    - scopelint
+    - sqlclosecheck
+    - staticcheck
+    - structcheck
+    - stylecheck
+    - testpackage
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    - whitespace
+    - wsl
+
+issues:
+  exclude-rules:
+    - path: (test\.go)
+      linters:
+        - gosec # security is not make sense in tests
+        - noctx # it's ok to do simple http request without context in tests

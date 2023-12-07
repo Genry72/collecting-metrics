@@ -106,6 +106,11 @@ func (m *Metrics) getMetrics() ([]*models.Metric, error) {
 // Update Запуск обновления метрик с заданным интервалом
 func (m *Metrics) Update(ctx context.Context, pollInterval time.Duration) {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	if pollInterval == 0 {
+		pollInterval = 2
+	}
+
 	t := time.NewTicker(pollInterval)
 	defer t.Stop()
 	for {

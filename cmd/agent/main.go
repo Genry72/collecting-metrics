@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/Genry72/collecting-metrics/internal/usecases/agent"
 	"os"
@@ -18,6 +19,13 @@ var (
 	flagRateLimit      uint64 // Количество одновременно исходящих запросов на сервер
 )
 
+// Информация о сборке
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
 const (
 	envEndpoint       = "ADDRESS"
 	envreportInterval = "REPORT_INTERVAL"
@@ -27,6 +35,11 @@ const (
 )
 
 func main() {
+	// Печать информации о сборке
+	fmt.Println("Build version:", printBuildInfo(buildVersion))
+	fmt.Println("Build date:", printBuildInfo(buildDate))
+	fmt.Println("Build commit:", printBuildInfo(buildCommit))
+
 	// обрабатываем аргументы командной строки
 	parseFlags()
 
@@ -70,4 +83,11 @@ func main() {
 	cansel()
 	// таймаут на завершение всех задач
 	time.Sleep(time.Second)
+}
+
+func printBuildInfo(info string) string {
+	if info != "" {
+		return info
+	}
+	return "N/A"
 }
