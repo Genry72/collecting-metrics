@@ -2,9 +2,11 @@ package agent
 
 import (
 	"context"
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/models"
+	"github.com/Genry72/collecting-metrics/internal/usecases/cryptor"
 	"github.com/go-resty/resty/v2"
 	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
@@ -16,20 +18,36 @@ type Agent struct {
 	hostPort      string
 	log           *zap.Logger
 	keyHash       *string
+	publicKey     *rsa.PublicKey
 	ratelimitChan chan struct{} // Количество одновременно исходящих запросов на сервер
 }
 
 // NewAgent Получение агента для сбора и отправки метрик
-func NewAgent(hostPort string, log *zap.Logger, keyHash *string, rateLimit uint64) *Agent {
+func NewAgent(hostPort string, log *zap.Logger, keyHash *string, publicKeyPath string, rateLimit uint64) (*Agent, error) {
 	restyClient := resty.New()
+
 	restyClient.SetTimeout(time.Second)
+
+	var (
+		publicLey *rsa.PublicKey
+		err       error
+	)
+
+	if publicKeyPath != "" {
+		publicLey, err = cryptor.GetPubKeyFromFile(publicKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("cryptor.GetPubKeyFromFile: %w", err)
+		}
+	}
+
 	return &Agent{
 		httpClient:    restyClient,
 		hostPort:      hostPort,
 		log:           log,
 		keyHash:       keyHash,
+		publicKey:     publicLey,
 		ratelimitChan: make(chan struct{}, rateLimit),
-	}
+	}, nil
 }
 
 // SendMetrics Отправка метрик с заданным интервалом
@@ -94,14 +112,6 @@ func (a *Agent) sendByJSONBatch(ctx context.Context, metric models.Metrics) erro
 			sleepTime := retry[i]
 			time.Sleep(sleepTime * time.Second)
 
-			// Добавляем заголовок с хешем тела запроса, если передан ключ
-			if a.keyHash != nil {
-				hash, err := metric.Encode(*a.keyHash)
-				if err != nil {
-					return fmt.Errorf("metric.Encode: %w", err)
-				}
-				a.httpClient.R().SetHeader(models.HeaderHash, hash)
-			}
 			client := a.httpClient.R().SetContext(ctx)
 
 			json := jsoniter.ConfigCompatibleWithStandardLibrary
@@ -109,6 +119,23 @@ func (a *Agent) sendByJSONBatch(ctx context.Context, metric models.Metrics) erro
 			metricJSON, err := json.Marshal(metric)
 			if err != nil {
 				return err
+			}
+			// Шифроуем тело запроса, если передан публичный ключ
+			if a.publicKey != nil {
+				metricJSON, err = cryptor.EncryptBodyWithPublicKey(metricJSON, a.publicKey)
+				if err != nil {
+					return fmt.Errorf("cryptor.EncryptBodyWithPublicKey: %w", err)
+				}
+			}
+
+			// Добавляем заголовок с хешем тела запроса, если передан ключ
+			if a.keyHash != nil {
+				hash, err := cryptor.Encrypt(metricJSON, *a.keyHash)
+				if err != nil {
+					return fmt.Errorf("cryptor.Encrypt: %w", err)
+				}
+
+				client.SetHeader(models.HeaderHash, hash)
 			}
 
 			resp, err := client.SetBody(metricJSON).Post(a.hostPort + url)

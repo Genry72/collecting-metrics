@@ -16,6 +16,9 @@ import (
 	"time"
 )
 
+// Организация, для выпоска сертификата и ключей
+const organization = "vsemenovOrg"
+
 var (
 	flagRunAddr         string
 	flagStoreInterval   int
@@ -23,6 +26,7 @@ var (
 	flagRestore         bool
 	flagPgDsn           string
 	flagKeyHash         string
+	flagCryptKey        string // Путь до файла с приватным ключом
 )
 
 // Информация о сборке
@@ -53,6 +57,8 @@ const (
 	envPgDSN = "DATABASE_DSN"
 	// Ключ для шифрования
 	envKeyHash = "KEY"
+	// Путь до файла с приватным ключом
+	envCryptKey = "CRYPTO_KEY"
 )
 
 func main() {
@@ -122,8 +128,8 @@ func main() {
 	}
 
 	go func() {
-		if err := h.RunServer(flagRunAddr, keyHash); err != nil {
-			zapLogger.Error(err.Error())
+		if err := h.RunServer(flagRunAddr, keyHash, flagCryptKey, organization); err != nil {
+			zapLogger.Fatal(err.Error())
 		}
 	}()
 

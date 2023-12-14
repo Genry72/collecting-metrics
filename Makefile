@@ -20,11 +20,11 @@ test: build
 
 .PHONY: runServer
 runServer: build
-	./cmd/server/server -a ":$(port)" -f "./tests.txt" -d "postgres://postgres:pass@localhost:5432/metrics?sslmode=disable" -k "superKey"
+	./cmd/server/server -a ":$(port)" -f "./tests.txt" -d "postgres://postgres:pass@localhost:5432/metrics?sslmode=disable" -k "superKey" -crypto-key "./internal/usecases/cryptor/private.key"
 
 .PHONY: runAgent
 runAgent: build
-	./cmd/agent/agent -a ":$(port)" -r 10 -p 0 -k "superKey" -l 1
+	./cmd/agent/agent -a ":$(port)" -r 10 -p 2 -k "superKey" -l 1 -crypto-key "./internal/usecases/cryptor/public.key"
 
 .PHONY: cover
 cover:

@@ -14,6 +14,7 @@ func parseFlags() {
 	flag.IntVar(&flagPollInterval, "p", 2, "poll interval")
 	flag.StringVar(&flagKeyHash, "k", "", "key for hash")
 	flag.Uint64Var(&flagRateLimit, "l", 1, "rate limit")
+	flag.StringVar(&flagCryptKey, "crypto-key", "", "Путь до файла с приватным ключом")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
 
@@ -43,4 +44,7 @@ func parseFlags() {
 		}
 	}
 
+	if key := os.Getenv(envCryptKey); key != "" {
+		flagCryptKey = key
+	}
 }

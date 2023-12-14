@@ -24,6 +24,8 @@ func parseFlags() {
 	flag.StringVar(&flagPgDsn, "d", "", "булево значение (true/false), определяющее, загружать или"+
 		" нет ранее сохранённые значения из указанного файла при старте сервера (по умолчанию true)")
 	flag.StringVar(&flagKeyHash, "k", "", "key for hash")
+
+	flag.StringVar(&flagCryptKey, "crypto-key", "", "Путь до файла с приватным ключом")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
 
@@ -57,5 +59,9 @@ func parseFlags() {
 
 	if key := os.Getenv(envKeyHash); key != "" {
 		flagKeyHash = key
+	}
+
+	if key := os.Getenv(envCryptKey); key != "" {
+		flagCryptKey = key
 	}
 }

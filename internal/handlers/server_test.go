@@ -48,7 +48,7 @@ func TestHandler_RunServer(t *testing.T) {
 			}
 
 			if tt.wantErr {
-				err := h.RunServer(tt.args.port, &key)
+				err := h.RunServer(tt.args.port, &key, "", "")
 				require.Error(t, err)
 			}
 

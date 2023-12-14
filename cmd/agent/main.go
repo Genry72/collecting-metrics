@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/Genry72/collecting-metrics/internal/usecases/agent"
+	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,6 +18,7 @@ var (
 	flagPollInterval   int    // Частота обновления метрик
 	flagKeyHash        string // Ключ для расчета HashSHA256
 	flagRateLimit      uint64 // Количество одновременно исходящих запросов на сервер
+	flagCryptKey       string // Путь до файла с приватным ключом
 )
 
 // Информация о сборке
@@ -32,6 +34,7 @@ const (
 	envPollInterval   = "POLL_INTERVAL"
 	envKeyHash        = "KEY"
 	envRateLimit      = "RATE_LIMIT"
+	envCryptKey       = "CRYPTO_KEY"
 )
 
 func main() {
@@ -66,7 +69,10 @@ func main() {
 		keyHash = &flagKeyHash
 	}
 
-	agentUc := agent.NewAgent("http://"+flagEndpointServer, zapLogger, keyHash, flagRateLimit)
+	agentUc, err := agent.NewAgent("http://"+flagEndpointServer, zapLogger, keyHash, flagCryptKey, flagRateLimit)
+	if err != nil {
+		zapLogger.Fatal("agent.NewAgent", zap.Error(err))
+	}
 
 	// Запускаем отправку метрик раз 10 секунд
 	go func() {
