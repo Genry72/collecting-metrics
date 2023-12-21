@@ -97,7 +97,7 @@ func main() {
 	h := handlers.NewServer(uc, zapLogger)
 
 	go func() {
-		if err := h.RunServer(conf.Address, conf.KeyHash, conf.CryptoKey, organization); err != nil {
+		if err := h.RunServer(conf.Address, conf.KeyHash, conf.CryptoKey, organization, conf.TrustedSubnet); err != nil {
 			zapLogger.Fatal(err.Error())
 		}
 	}()

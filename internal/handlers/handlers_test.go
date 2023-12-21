@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/Genry72/collecting-metrics/internal/handlers/midlware/access"
 	"github.com/Genry72/collecting-metrics/internal/logger"
+	"github.com/Genry72/collecting-metrics/internal/models"
 	"github.com/Genry72/collecting-metrics/internal/repositories/filestorage"
 	"github.com/Genry72/collecting-metrics/internal/repositories/memstorage"
 	"github.com/Genry72/collecting-metrics/internal/repositories/postgre"
@@ -22,14 +24,13 @@ func TestHandler_setMetrics(t *testing.T) {
 		response string
 	}
 
-	type fields struct {
-		useCases *server.Server
+	type args struct {
+		method   string
+		url      string
+		headers  map[string]string
+		midlware func(*gin.Engine)
 	}
 
-	type args struct {
-		method string
-		url    string
-	}
 	zapLogger := logger.NewZapLogger("info")
 
 	repo := memstorage.NewMemStorage(zapLogger)
@@ -47,17 +48,18 @@ func TestHandler_setMetrics(t *testing.T) {
 
 	uc := server.NewServerUc(repo, ps, pg, zapLogger)
 
+	h := Handler{
+		useCases: uc,
+		log:      zapLogger,
+	}
+
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   want
+		name string
+		args args
+		want want
 	}{
 		{
 			name: "positive test #1",
-			fields: fields{
-				useCases: uc,
-			},
 			args: args{
 				method: http.MethodPost,
 				url:    "/update/gauge/name/11",
@@ -69,9 +71,6 @@ func TestHandler_setMetrics(t *testing.T) {
 		},
 		{
 			name: "negative test #1",
-			fields: fields{
-				useCases: uc,
-			},
 			args: args{
 				method: http.MethodGet,
 				url:    "/update/gauge/name/11",
@@ -83,9 +82,6 @@ func TestHandler_setMetrics(t *testing.T) {
 		},
 		{
 			name: "negative test #2",
-			fields: fields{
-				useCases: uc,
-			},
 			args: args{
 				method: http.MethodPost,
 				url:    "/update/gauge/name",
@@ -97,9 +93,6 @@ func TestHandler_setMetrics(t *testing.T) {
 		},
 		{
 			name: "negative test #3",
-			fields: fields{
-				useCases: uc,
-			},
 			args: args{
 				method: http.MethodPost,
 				url:    "/update/gauge/name/aa",
@@ -111,9 +104,6 @@ func TestHandler_setMetrics(t *testing.T) {
 		},
 		{
 			name: "negative test #4",
-			fields: fields{
-				useCases: uc,
-			},
 			args: args{
 				method: http.MethodPost,
 				url:    "/update/gauge/11",
@@ -123,26 +113,63 @@ func TestHandler_setMetrics(t *testing.T) {
 				response: "",
 			},
 		},
+		{
+			name: "positive CheckIpAddress #1",
+			args: args{
+				method: http.MethodPost,
+				url:    "/update/gauge/name/11",
+				midlware: func(g *gin.Engine) {
+					g.Use(access.CheckIpAddress(zapLogger, "192.168.0.1/24"))
+				},
+				headers: map[string]string{
+					models.HeaderTrustedSubnet: "192.168.0.5",
+				},
+			},
+			want: want{
+				code:     http.StatusOK,
+				response: "",
+			},
+		},
+		{
+			name: "negative CheckIpAddress #1",
+			args: args{
+				method: http.MethodPost,
+				url:    "/update/gauge/name/11",
+				midlware: func(g *gin.Engine) {
+					g.Use(access.CheckIpAddress(zapLogger, "192.168.0.1/24"))
+				},
+				headers: map[string]string{
+					models.HeaderTrustedSubnet: "192.169.0.5",
+				},
+			},
+			want: want{
+				code:     http.StatusForbidden,
+				response: "",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := Handler{
-				useCases: tt.fields.useCases,
-				log:      zapLogger,
-			}
-			w := httptest.NewRecorder()
-			r := httptest.NewRequest(tt.args.method, tt.args.url, nil)
 			gin.SetMode(gin.ReleaseMode)
+
 			g := gin.New()
+			if tt.args.midlware != nil {
+				tt.args.midlware(g)
+			}
+			//g.Use(access.CheckIpAddress(zapLogger, "192.168.0.1/24"))
 			h.setupRoute(g)
+
+			w := httptest.NewRecorder()
+
+			r := httptest.NewRequest(tt.args.method, tt.args.url, nil)
+			// Добавляем заголовки
+			for k, v := range tt.args.headers {
+				r.Header.Set(k, v)
+			}
 			g.ServeHTTP(w, r)
-			//res := w.Result()
 			// проверяем код ответа
 			assert.Equal(t, tt.want.code, w.Code, w.Body.String())
-			//if err := w.Body.; err != nil {
-			//	t.Error(err)
-			//}
 		})
 	}
 

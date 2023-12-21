@@ -11,12 +11,14 @@ import (
 func Test_parseFlag(t *testing.T) {
 	port999 := ":9999"
 	port8081 := ":8081"
+	defPort8081 := ":8080"
 	confPath := "./test_config.json"
 	defTrue := true
 	False := false
 	defStoreInterval := 300
 	confStoreInterval := 1
 	defStoreFile := "/tmp/metrics-db.json"
+	subnet := "127.0.0.1"
 
 	type args struct {
 		f func()
@@ -38,6 +40,21 @@ func Test_parseFlag(t *testing.T) {
 			},
 			args: args{func() {
 				os.Args = append(os.Args, `-a=:9999`)
+			}},
+		},
+		{
+			name: "Флаг TrustedSubnet",
+			want: &flags.RunParameters{
+				Address:       &defPort8081,
+				Restore:       &defTrue, // default
+				StoreInterval: &defStoreInterval,
+				StoreFile:     &defStoreFile,
+				DatabaseDsn:   nil,
+				CryptoKey:     nil,
+				TrustedSubnet: &subnet,
+			},
+			args: args{func() {
+				os.Args = append(os.Args, "-t="+subnet)
 			}},
 		},
 		{
