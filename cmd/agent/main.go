@@ -26,9 +26,6 @@ func main() {
 	fmt.Println("Build date:", printBuildInfo(buildDate))
 	fmt.Println("Build commit:", printBuildInfo(buildCommit))
 
-	// обрабатываем аргументы командной строки
-	conf, err := flags.ParseFlag()
-
 	zapLogger := logger.NewZapLogger("info")
 
 	defer func() {
@@ -36,6 +33,12 @@ func main() {
 	}()
 
 	zapLogger.Info("start agent")
+
+	// обрабатываем аргументы командной строки
+	conf, err := flags.ParseFlag()
+	if err != nil {
+		zapLogger.Fatal("flags.ParseFlag", zap.Error(err))
+	}
 
 	metrics := agent.NewMetrics()
 
