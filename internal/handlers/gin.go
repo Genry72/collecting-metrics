@@ -45,7 +45,7 @@ func (h *Handler) RunServer(
 	g := gin.New()
 
 	if trustedSubnet != nil {
-		g.Use(access.CheckIpAddress(h.log, *trustedSubnet))
+		g.Use(access.CheckIPAddress(h.log, *trustedSubnet))
 	}
 
 	g.Use(log.ResponseLogger(h.log))

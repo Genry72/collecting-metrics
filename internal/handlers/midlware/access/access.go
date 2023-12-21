@@ -9,11 +9,11 @@ import (
 )
 
 /*
-CheckIpAddress Является промежуточной функцией для фреймворка Gin. Она проверяет, находится ли IP-адрес клиента
+CheckIPAddress Является промежуточной функцией для фреймворка Gin. Она проверяет, находится ли IP-адрес клиента
 в доверенной подсети. Если IP-адрес находится в подсети, то запрос разрешается,
 в противном случае возвращается статус "Forbidden".
 */
-func CheckIpAddress(log *zap.Logger, trustedSubnet string) gin.HandlerFunc {
+func CheckIPAddress(log *zap.Logger, trustedSubnet string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if trustedSubnet == "" {
 			c.Next()

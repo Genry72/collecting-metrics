@@ -114,12 +114,12 @@ func TestHandler_setMetrics(t *testing.T) {
 			},
 		},
 		{
-			name: "positive CheckIpAddress #1",
+			name: "positive CheckIPAddress #1",
 			args: args{
 				method: http.MethodPost,
 				url:    "/update/gauge/name/11",
 				midlware: func(g *gin.Engine) {
-					g.Use(access.CheckIpAddress(zapLogger, "192.168.0.1/24"))
+					g.Use(access.CheckIPAddress(zapLogger, "192.168.0.1/24"))
 				},
 				headers: map[string]string{
 					models.HeaderTrustedSubnet: "192.168.0.5",
@@ -131,12 +131,12 @@ func TestHandler_setMetrics(t *testing.T) {
 			},
 		},
 		{
-			name: "negative CheckIpAddress #1",
+			name: "negative CheckIPAddress #1",
 			args: args{
 				method: http.MethodPost,
 				url:    "/update/gauge/name/11",
 				midlware: func(g *gin.Engine) {
-					g.Use(access.CheckIpAddress(zapLogger, "192.168.0.1/24"))
+					g.Use(access.CheckIPAddress(zapLogger, "192.168.0.1/24"))
 				},
 				headers: map[string]string{
 					models.HeaderTrustedSubnet: "192.169.0.5",
@@ -157,7 +157,7 @@ func TestHandler_setMetrics(t *testing.T) {
 			if tt.args.midlware != nil {
 				tt.args.midlware(g)
 			}
-			//g.Use(access.CheckIpAddress(zapLogger, "192.168.0.1/24"))
+			//g.Use(access.CheckIPAddress(zapLogger, "192.168.0.1/24"))
 			h.setupRoute(g)
 
 			w := httptest.NewRecorder()
