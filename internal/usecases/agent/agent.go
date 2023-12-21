@@ -23,7 +23,15 @@ type Agent struct {
 }
 
 // NewAgent Получение агента для сбора и отправки метрик
-func NewAgent(hostPort string, log *zap.Logger, keyHash *string, publicKeyPath string, rateLimit uint64) (*Agent, error) {
+func NewAgent(hostPort string, log *zap.Logger, keyHash *string, publicKeyPath *string, rateLimitPtr *int) (*Agent, error) {
+
+	rateLimit := 0
+	if rateLimitPtr == nil || *rateLimitPtr == 0 {
+		rateLimit = 1
+	} else {
+		rateLimit = *rateLimitPtr
+	}
+
 	restyClient := resty.New()
 
 	restyClient.SetTimeout(time.Second)
@@ -33,8 +41,8 @@ func NewAgent(hostPort string, log *zap.Logger, keyHash *string, publicKeyPath s
 		err       error
 	)
 
-	if publicKeyPath != "" {
-		publicLey, err = cryptor.GetPubKeyFromFile(publicKeyPath)
+	if publicKeyPath != nil && *publicKeyPath != "" {
+		publicLey, err = cryptor.GetPubKeyFromFile(*publicKeyPath)
 		if err != nil {
 			return nil, fmt.Errorf("cryptor.GetPubKeyFromFile: %w", err)
 		}

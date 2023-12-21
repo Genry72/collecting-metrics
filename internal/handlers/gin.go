@@ -28,7 +28,11 @@ const (
 // - privateKeyPath: Путь до закрытого ключа
 // Возвращаемое значение:
 // - error: ошибка, возникающая при запуске сервера.
-func (h *Handler) RunServer(hostPort string, password *string, privateKeyPath, organization string) error {
+func (h *Handler) RunServer(hostPort *string, password *string, privateKeyPath *string, organization string) error {
+	if hostPort == nil || *hostPort == "" {
+		return fmt.Errorf("empry address")
+	}
+
 	gin.SetMode(gin.ReleaseMode)
 
 	g := gin.New()
@@ -38,19 +42,19 @@ func (h *Handler) RunServer(hostPort string, password *string, privateKeyPath, o
 
 	g.Use(gzip.Gzip(h.log))
 	// Проверка хеша тела запроса, если передан пароль
-	if password != nil {
+	if password != nil && *password != "" {
 		g.Use(cryptor.CheckHashFromHeader(h.log, *password))
 	}
 
 	// При передаче ключа, подключаем обработчик по расшифровке тела запроса приватным ключем
-	if privateKeyPath != "" {
+	if privateKeyPath != nil && *privateKeyPath != "" {
 		// Проверка наличия ключа по указанному пути, если его нет, то генерируем новый набор
-		privKey, err := cryptor2.GetPrivateKeyFromFile(privateKeyPath)
+		privKey, err := cryptor2.GetPrivateKeyFromFile(*privateKeyPath)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				h.log.Info("The path to the private key provided by the file was not found. Generating a new keychain.")
 
-				privKey, err = h.generateCert(privateKeyPath, organization)
+				privKey, err = h.generateCert(*privateKeyPath, organization)
 				if err != nil {
 					return fmt.Errorf("h.generateCert: %w", err)
 				}
@@ -64,9 +68,9 @@ func (h *Handler) RunServer(hostPort string, password *string, privateKeyPath, o
 
 	pprof.Register(g)
 
-	h.setupRoute(g, password)
+	h.setupRoute(g)
 
-	if err := g.Run(hostPort); err != nil {
+	if err := g.Run(*hostPort); err != nil {
 		return fmt.Errorf("g.Run: %w", err)
 	}
 
@@ -74,7 +78,7 @@ func (h *Handler) RunServer(hostPort string, password *string, privateKeyPath, o
 }
 
 // setupRoute Установка хендлеров
-func (h *Handler) setupRoute(g *gin.Engine, password *string) {
+func (h *Handler) setupRoute(g *gin.Engine) {
 	g.GET("/", h.getAllMetrics)
 	g.GET("/ping", h.pingDatabase)
 

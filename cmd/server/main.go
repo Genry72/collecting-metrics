@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/Genry72/collecting-metrics/cmd/server/flags"
 	"github.com/Genry72/collecting-metrics/internal/handlers"
 	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/Genry72/collecting-metrics/internal/repositories/filestorage"
@@ -19,46 +20,11 @@ import (
 // Организация, для выпоска сертификата и ключей
 const organization = "vsemenovOrg"
 
-var (
-	flagRunAddr         string
-	flagStoreInterval   int
-	flagFileStoragePath string
-	flagRestore         bool
-	flagPgDsn           string
-	flagKeyHash         string
-	flagCryptKey        string // Путь до файла с приватным ключом
-)
-
 // Информация о сборке
 var (
 	buildVersion string
 	buildDate    string
 	buildCommit  string
-)
-
-const (
-	envRunAddr = "ADDRESS"
-	/*
-		Интервал времени в секундах, по истечении которого текущие показания сервера сохраняются на диск
-		(по умолчанию 300 секунд, значение 0 делает запись синхронной).
-	*/
-	envStoreInterval = "STORE_INTERVAL"
-	/*
-		Полное имя файла, куда сохраняются текущие значения (по умолчанию /tmp/metrics-db.json,
-		пустое значение отключает функцию записи на диск)
-	*/
-	envFileStoragePath = "FILE_STORAGE_PATH"
-	/*
-		Булево значение (true/false), определяющее, загружать или нет ранее сохранённые значения
-		из указанного файла при старте сервера (по умолчанию true)
-	*/
-	envRestore = "RESTORE"
-	// Строка с адресом подключения к БД
-	envPgDSN = "DATABASE_DSN"
-	// Ключ для шифрования
-	envKeyHash = "KEY"
-	// Путь до файла с приватным ключом
-	envCryptKey = "CRYPTO_KEY"
 )
 
 func main() {
@@ -74,7 +40,12 @@ func main() {
 	}()
 
 	// обрабатываем аргументы командной строки
-	parseFlags()
+	conf, err := flags.ParseFlag()
+	if err != nil {
+		zapLogger.Fatal(err.Error())
+	}
+
+	zapLogger.Info("Started with config", zap.Any("config", conf))
 
 	zapLogger.Info("start server")
 
@@ -82,7 +53,7 @@ func main() {
 
 	defer mainStop()
 
-	databaseStorage, err := postgre.NewPGStorage(flagPgDsn, zapLogger)
+	databaseStorage, err := postgre.NewPGStorage(conf.DatabaseDsn, zapLogger)
 	if err != nil {
 		zapLogger.Error("connect databaseStorage", zap.Error(err))
 	} else {
@@ -95,7 +66,11 @@ func main() {
 	if databaseStorage == nil {
 		memStorage := memstorage.NewMemStorage(zapLogger)
 
-		permStorConf := filestorage.NewPermanentStorageConf(flagStoreInterval, flagFileStoragePath, flagRestore)
+		if conf.StoreInterval == nil || conf.StoreFile == nil || conf.Restore == nil {
+			zapLogger.Fatal("err load configurations")
+		}
+
+		permStorConf := filestorage.NewPermanentStorageConf(*conf.StoreInterval, *conf.StoreFile, *conf.Restore)
 
 		fileStorage, err := filestorage.NewFileStorage(permStorConf, zapLogger)
 		if err != nil {
@@ -121,14 +96,8 @@ func main() {
 
 	h := handlers.NewServer(uc, zapLogger)
 
-	var keyHash *string
-
-	if flagKeyHash != "" {
-		keyHash = &flagKeyHash
-	}
-
 	go func() {
-		if err := h.RunServer(flagRunAddr, keyHash, flagCryptKey, organization); err != nil {
+		if err := h.RunServer(conf.Address, conf.KeyHash, conf.CryptoKey, organization); err != nil {
 			zapLogger.Fatal(err.Error())
 		}
 	}()

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/Genry72/collecting-metrics/cmd/agent/flags"
 	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/Genry72/collecting-metrics/internal/usecases/agent"
 	"go.uber.org/zap"
@@ -12,29 +13,11 @@ import (
 	"time"
 )
 
-var (
-	flagEndpointServer string // endpoint сервера
-	flagReportInterval int    // Частота оправки метрик в секундах
-	flagPollInterval   int    // Частота обновления метрик
-	flagKeyHash        string // Ключ для расчета HashSHA256
-	flagRateLimit      uint64 // Количество одновременно исходящих запросов на сервер
-	flagCryptKey       string // Путь до файла с приватным ключом
-)
-
 // Информация о сборке
 var (
 	buildVersion string
 	buildDate    string
 	buildCommit  string
-)
-
-const (
-	envEndpoint       = "ADDRESS"
-	envreportInterval = "REPORT_INTERVAL"
-	envPollInterval   = "POLL_INTERVAL"
-	envKeyHash        = "KEY"
-	envRateLimit      = "RATE_LIMIT"
-	envCryptKey       = "CRYPTO_KEY"
 )
 
 func main() {
@@ -44,7 +27,7 @@ func main() {
 	fmt.Println("Build commit:", printBuildInfo(buildCommit))
 
 	// обрабатываем аргументы командной строки
-	parseFlags()
+	conf, err := flags.ParseFlag()
 
 	zapLogger := logger.NewZapLogger("info")
 
@@ -60,23 +43,21 @@ func main() {
 
 	// Запускаем обновление раз в 2 секунты
 	go func() {
-		metrics.Update(ctx, time.Duration(flagPollInterval)*time.Second)
+		metrics.Update(ctx, time.Duration(*conf.PollInterval)*time.Second)
 	}()
 
-	var keyHash *string
-
-	if flagKeyHash != "" {
-		keyHash = &flagKeyHash
+	if conf.Address == nil || *conf.Address == "" {
+		zapLogger.Fatal("empty endpoint")
 	}
 
-	agentUc, err := agent.NewAgent("http://"+flagEndpointServer, zapLogger, keyHash, flagCryptKey, flagRateLimit)
+	agentUc, err := agent.NewAgent("http://"+*conf.Address, zapLogger, conf.KeyHash, conf.CryptoKey, conf.RateLimit)
 	if err != nil {
 		zapLogger.Fatal("agent.NewAgent", zap.Error(err))
 	}
 
 	// Запускаем отправку метрик раз 10 секунд
 	go func() {
-		agentUc.SendMetrics(ctx, metrics, time.Duration(flagReportInterval)*time.Second)
+		agentUc.SendMetrics(ctx, metrics, time.Duration(*conf.ReportInterval)*time.Second)
 	}()
 
 	// Graceful shutdown block
