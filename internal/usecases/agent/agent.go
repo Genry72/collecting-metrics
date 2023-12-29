@@ -66,11 +66,18 @@ func NewAgent(hostPort string, grpcHostPort *string, log *zap.Logger, keyHash *s
 		if err != nil {
 			log.Fatal("grpc.Dial", zap.Error(err))
 		}
+
 		client, err = grpcClient.NewGrpcClient(grpcconn, log, keyHash, publicKeyPath)
+		if err != nil {
+			log.Fatal(" grpcClient.NewGrpcClient", zap.Error(err))
+		}
 	}
 
 	if grpcconn == nil {
 		client, err = httpclients.NewHTTPClient(hostPort, log, keyHash, publicKeyPath)
+		if err != nil {
+			log.Fatal("httpclients.NewHTTPClient", zap.Error(err))
+		}
 	}
 
 	rateLimit := 0
@@ -94,7 +101,9 @@ func (a *Agent) SendMetrics(ctx context.Context, metric *Metrics, reportInterval
 	defer func() {
 		close(a.ratelimitChan)
 	}()
+
 	t := time.NewTicker(reportInterval)
+
 	defer t.Stop()
 	for {
 		select {
@@ -166,8 +175,6 @@ func (a *Agent) send(ctx context.Context, metric models.Metrics) error {
 			}
 		}
 
-		//a.log.Info("metrics send success")
-
 		return rErr
 	}
 
@@ -176,20 +183,4 @@ func (a *Agent) send(ctx context.Context, metric models.Metrics) error {
 type SenderMetrics interface {
 	Send(ctx context.Context, metric models.Metrics) error
 	Stop() error
-}
-
-func checkStatus(statusCode int, body string) error {
-	switch {
-	case statusCode >= 200 && statusCode < 400:
-		return nil
-	case statusCode >= 400 && statusCode < 500:
-		// повтор не нужен
-		return fmt.Errorf("status not ok: %d body: %s", statusCode, body)
-	case statusCode >= 500:
-		// нужен повтор
-		err := fmt.Errorf("status not ok: %d body: %s", statusCode, body)
-		return models.NewRetryError(err)
-	default:
-		return nil
-	}
 }
