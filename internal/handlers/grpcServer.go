@@ -71,7 +71,7 @@ func (h *Server) RunServer(hostPort string) {
 
 	// Проверка ip адреса отправителя в метаданных
 	if h.trustedSubnet != nil && *h.trustedSubnet != "" {
-		h.use(interceptor.CheckIpFromHeader(h.log, *h.trustedSubnet))
+		h.use(interceptor.CheckIPFromHeader(h.log, *h.trustedSubnet))
 	}
 
 	// Проверка хеша тела запроса

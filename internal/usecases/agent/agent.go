@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/models"
-	"github.com/Genry72/collecting-metrics/internal/usecases/agent/grpcClient"
+	"github.com/Genry72/collecting-metrics/internal/usecases/agent/grpcclients"
 	"github.com/Genry72/collecting-metrics/internal/usecases/agent/httpclients"
 	"github.com/Genry72/collecting-metrics/internal/usecases/cryptor"
 	interceptor "github.com/Genry72/collecting-metrics/internal/usecases/interceptor/agent"
@@ -48,7 +48,7 @@ func NewAgent(hostPort string, grpcHostPort *string, log *zap.Logger, keyHash *s
 		interceptors = append(interceptors, interceptor.Logging(log))
 
 		// Передача ip адреса в метаданных
-		interceptors = append(interceptors, interceptor.SetIpToHeader(log))
+		interceptors = append(interceptors, interceptor.SetIPToHeader(log))
 
 		// шифрование тела запроса
 		if publicLey != nil {
@@ -67,7 +67,7 @@ func NewAgent(hostPort string, grpcHostPort *string, log *zap.Logger, keyHash *s
 			log.Fatal("grpc.Dial", zap.Error(err))
 		}
 
-		client, err = grpcClient.NewGrpcClient(grpcconn, log, keyHash, publicKeyPath)
+		client, err = grpcclients.NewGrpcClient(grpcconn, log, keyHash, publicKeyPath)
 		if err != nil {
 			log.Fatal(" grpcClient.NewGrpcClient", zap.Error(err))
 		}

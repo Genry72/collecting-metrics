@@ -11,8 +11,8 @@ import (
 	"net"
 )
 
-// CheckIpFromHeader Проверка методанных с ip адресом
-func CheckIpFromHeader(log *zap.Logger, trustedSubnet string) grpc.UnaryServerInterceptor {
+// CheckIPFromHeader Проверка методанных с ip адресом
+func CheckIPFromHeader(log *zap.Logger, trustedSubnet string) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context,
 		req interface{},
 		info *grpc.UnaryServerInfo,

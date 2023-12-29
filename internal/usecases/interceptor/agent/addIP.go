@@ -10,8 +10,8 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-// SetIpToHeader Добавление методанных с ip адресом
-func SetIpToHeader(log *zap.Logger) grpc.UnaryClientInterceptor {
+// SetIPToHeader Добавление методанных с ip адресом
+func SetIPToHeader(log *zap.Logger) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req interface{},
 		reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption) error {
