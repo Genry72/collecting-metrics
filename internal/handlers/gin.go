@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"github.com/Genry72/collecting-metrics/internal/handlers/midlware/access"
 	"github.com/Genry72/collecting-metrics/internal/handlers/midlware/cryptor"
 	"github.com/Genry72/collecting-metrics/internal/handlers/midlware/gzip"
 	"github.com/Genry72/collecting-metrics/internal/handlers/midlware/log"
@@ -28,7 +29,13 @@ const (
 // - privateKeyPath: Путь до закрытого ключа
 // Возвращаемое значение:
 // - error: ошибка, возникающая при запуске сервера.
-func (h *Handler) RunServer(hostPort *string, password *string, privateKeyPath *string, organization string) error {
+func (h *Handler) RunServer(
+	hostPort *string,
+	password *string,
+	privateKeyPath *string,
+	organization string,
+	trustedSubnet *string,
+) error {
 	if hostPort == nil || *hostPort == "" {
 		return fmt.Errorf("empry address")
 	}
@@ -36,6 +43,10 @@ func (h *Handler) RunServer(hostPort *string, password *string, privateKeyPath *
 	gin.SetMode(gin.ReleaseMode)
 
 	g := gin.New()
+
+	if trustedSubnet != nil {
+		g.Use(access.CheckIPAddress(h.log, *trustedSubnet))
+	}
 
 	g.Use(log.ResponseLogger(h.log))
 	g.Use(log.RequestLogger(h.log))

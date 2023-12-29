@@ -42,6 +42,8 @@ type RunParameters struct {
 	CryptoKey *string `json:"crypto_key" env:"CRYPTO_KEY" flag:"crypto-key" default:"" comment:"Путь до файла с приватным ключом"`
 	// Кдюч шифрования
 	KeyHash *string `json:"-"`
+	// Доверенная подсеть для ограничения входящих запросов
+	TrustedSubnet *string `json:"trusted_subnet" env:"TRUSTED_SUBNET" flag:"t" default:"" comment:"Доверенная подсеть"`
 }
 
 func ParseFlag() (*RunParameters, error) {

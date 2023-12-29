@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"github.com/Genry72/collecting-metrics/helpers"
 	"github.com/Genry72/collecting-metrics/internal/models"
 	"github.com/Genry72/collecting-metrics/internal/usecases/cryptor"
 	"github.com/go-resty/resty/v2"
@@ -144,6 +145,14 @@ func (a *Agent) sendByJSONBatch(ctx context.Context, metric models.Metrics) erro
 				}
 
 				client.SetHeader(models.HeaderHash, hash)
+			}
+
+			// Добавляем заголовок с локальным ip
+			localIP, err := helpers.GetLocalIP()
+			if err != nil {
+				a.log.Error("helpers.GetLocalIP", zap.Error(err))
+			} else {
+				client.SetHeader(models.HeaderTrustedSubnet, localIP.String())
 			}
 
 			resp, err := client.SetBody(metricJSON).Post(a.hostPort + url)

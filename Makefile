@@ -20,7 +20,7 @@ test: build
 
 .PHONY: runServer
 runServer: build
-	./cmd/server/server -a ":$(port)" -f "./tests.txt" -d "postgres://postgres:pass@localhost:5432/metrics?sslmode=disable" -k "superKey" -crypto-key "./internal/usecases/cryptor/private.key"
+	./cmd/server/server -a ":$(port)" -f "./tests.txt" -d "postgres://postgres:pass@localhost:5432/metrics?sslmode=disable" -k "superKey" -crypto-key "./internal/usecases/cryptor/private.key" -t "192.168.31.1/24"
 
 .PHONY: runAgent
 runAgent: build
