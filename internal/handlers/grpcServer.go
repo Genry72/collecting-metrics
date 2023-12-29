@@ -137,7 +137,7 @@ func (h *Server) SetMetricsEncrypted(ctx context.Context, in *pb.EncryptedMessag
 
 	if err := json.Unmarshal([]byte(in.Data), &metricParams); err != nil {
 		h.log.Error("json.Unmarshal", zap.Error(err))
-		return nil, status.Errorf(codes.Unimplemented, "json.Unmarshal: %w", err)
+		return nil, status.Errorf(codes.Unimplemented, "json.Unmarshal: %v", err)
 	}
 
 	statusCode, err := h.useCases.SetMetric(ctx, metricParams...)

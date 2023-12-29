@@ -1,4 +1,4 @@
-package httpClient
+package httpclients
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-type HttpClient struct {
+type HTTPClient struct {
 	httpClient *resty.Client
 	hostPort   string
 	log        *zap.Logger
@@ -21,7 +21,7 @@ type HttpClient struct {
 	publicKey  *rsa.PublicKey
 }
 
-func NewHttpClient(hostPort string, log *zap.Logger, keyHash *string, publicKeyPath *string) (*HttpClient, error) {
+func NewHTTPClient(hostPort string, log *zap.Logger, keyHash *string, publicKeyPath *string) (*HTTPClient, error) {
 	restyClient := resty.New()
 	restyClient.SetTimeout(time.Second)
 
@@ -36,7 +36,7 @@ func NewHttpClient(hostPort string, log *zap.Logger, keyHash *string, publicKeyP
 			return nil, fmt.Errorf("cryptor.GetPubKeyFromFile: %w", err)
 		}
 	}
-	return &HttpClient{
+	return &HTTPClient{
 		httpClient: restyClient,
 		hostPort:   hostPort,
 		log:        log,
@@ -45,7 +45,7 @@ func NewHttpClient(hostPort string, log *zap.Logger, keyHash *string, publicKeyP
 	}, nil
 }
 
-func (c *HttpClient) Send(ctx context.Context, metric models.Metrics) error {
+func (c *HTTPClient) Send(ctx context.Context, metric models.Metrics) error {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 
 	metricJSON, err := json.Marshal(metric)
@@ -101,7 +101,7 @@ func (c *HttpClient) Send(ctx context.Context, metric models.Metrics) error {
 	return nil
 }
 
-func (c *HttpClient) Stop() error {
+func (c *HTTPClient) Stop() error {
 	return nil
 }
 

@@ -232,7 +232,9 @@ func ParseFlag() (*RunParameters, error) {
 		v.Elem().Field(i).Set(val)
 	}
 
-	params.KeyHash = &flagKeyHash
+	if flagKeyHash != "" {
+		params.KeyHash = &flagKeyHash
+	}
 
 	return &params, nil
 }

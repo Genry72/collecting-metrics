@@ -19,6 +19,7 @@ func Test_parseFlag(t *testing.T) {
 	confStoreInterval := 1
 	defStoreFile := "/tmp/metrics-db.json"
 	subnet := "127.0.0.1"
+	defGrpcAdd := ":3200"
 
 	type args struct {
 		f func()
@@ -37,6 +38,7 @@ func Test_parseFlag(t *testing.T) {
 				StoreFile:     &defStoreFile,
 				DatabaseDsn:   nil,
 				CryptoKey:     nil,
+				GrpcAddress:   &defGrpcAdd,
 			},
 			args: args{func() {
 				os.Args = append(os.Args, `-a=:9999`)
@@ -52,6 +54,7 @@ func Test_parseFlag(t *testing.T) {
 				DatabaseDsn:   nil,
 				CryptoKey:     nil,
 				TrustedSubnet: &subnet,
+				GrpcAddress:   &defGrpcAdd,
 			},
 			args: args{func() {
 				os.Args = append(os.Args, "-t="+subnet)
@@ -66,6 +69,7 @@ func Test_parseFlag(t *testing.T) {
 				StoreFile:     &defStoreFile,     // default
 				DatabaseDsn:   nil,
 				CryptoKey:     nil,
+				GrpcAddress:   &defGrpcAdd,
 			},
 			args: args{func() {
 				os.Setenv("ADDRESS", port999)
@@ -80,6 +84,7 @@ func Test_parseFlag(t *testing.T) {
 				StoreFile:     &defStoreFile,     // default
 				DatabaseDsn:   nil,
 				CryptoKey:     nil,
+				GrpcAddress:   &defGrpcAdd,
 			},
 			args: args{func() {
 				os.Setenv("ADDRESS", port999)
@@ -95,6 +100,7 @@ func Test_parseFlag(t *testing.T) {
 				StoreFile:     &defStoreFile,      // default
 				DatabaseDsn:   nil,
 				CryptoKey:     nil,
+				GrpcAddress:   &defGrpcAdd,
 			},
 			args: args{func() {
 				os.Setenv("CONFIG", confPath)
@@ -109,6 +115,7 @@ func Test_parseFlag(t *testing.T) {
 				StoreFile:     &defStoreFile,      // default
 				DatabaseDsn:   nil,
 				CryptoKey:     nil,
+				GrpcAddress:   &defGrpcAdd,
 			},
 			args: args{func() {
 				os.Args = append(os.Args, `-config=`+confPath)
@@ -123,6 +130,7 @@ func Test_parseFlag(t *testing.T) {
 				StoreFile:     &defStoreFile,      // default
 				DatabaseDsn:   nil,
 				CryptoKey:     nil,
+				GrpcAddress:   &defGrpcAdd,
 			},
 			args: args{func() {
 				os.Args = append(os.Args, `-config=`+confPath)

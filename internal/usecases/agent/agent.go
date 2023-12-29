@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/Genry72/collecting-metrics/internal/models"
 	"github.com/Genry72/collecting-metrics/internal/usecases/agent/grpcClient"
-	"github.com/Genry72/collecting-metrics/internal/usecases/agent/httpClient"
+	"github.com/Genry72/collecting-metrics/internal/usecases/agent/httpclients"
 	"github.com/Genry72/collecting-metrics/internal/usecases/cryptor"
 	interceptor "github.com/Genry72/collecting-metrics/internal/usecases/interceptor/agent"
 	"go.uber.org/zap"
@@ -70,7 +70,7 @@ func NewAgent(hostPort string, grpcHostPort *string, log *zap.Logger, keyHash *s
 	}
 
 	if grpcconn == nil {
-		client, err = httpClient.NewHttpClient(hostPort, log, keyHash, publicKeyPath)
+		client, err = httpclients.NewHTTPClient(hostPort, log, keyHash, publicKeyPath)
 	}
 
 	rateLimit := 0
