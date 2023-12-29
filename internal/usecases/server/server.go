@@ -104,6 +104,10 @@ func checkMetricParams(metric *models.Metric, checkValue bool) (int, error) {
 		return http.StatusBadRequest, models.ErrBadMetricValue
 	}
 
+	if metric.Value != nil || metric.Delta != nil {
+		metric.ValueText = ""
+	}
+
 	if metric.ValueText != "" && checkValue {
 		switch metric.MType {
 		case models.MetricTypeGauge:
@@ -112,12 +116,14 @@ func checkMetricParams(metric *models.Metric, checkValue bool) (int, error) {
 				return http.StatusBadRequest, models.ErrParseValue
 			}
 			metric.Value = &val
+			metric.Delta = nil
 		case models.MetricTypeCounter:
 			val, err := strconv.ParseInt(metric.ValueText, 10, 64)
 			if err != nil {
 				return http.StatusBadRequest, models.ErrParseValue
 			}
 			metric.Delta = &val
+			metric.Value = nil
 		}
 	}
 
@@ -127,6 +133,7 @@ func checkMetricParams(metric *models.Metric, checkValue bool) (int, error) {
 			if metric.Value == nil {
 				return http.StatusBadRequest, models.ErrBadMetricValue
 			}
+			metric.Delta = nil
 		}
 
 	case models.MetricTypeCounter:
@@ -134,6 +141,7 @@ func checkMetricParams(metric *models.Metric, checkValue bool) (int, error) {
 			if metric.Delta == nil {
 				return http.StatusBadRequest, models.ErrBadMetricValue
 			}
+			metric.Value = nil
 		}
 	default:
 		return http.StatusBadRequest, models.ErrBadMetricType

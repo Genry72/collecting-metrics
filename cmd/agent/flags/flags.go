@@ -18,6 +18,8 @@ const (
 type RunParameters struct {
 	// Address Адрес и порт на котором запущен сервер
 	Address *string `json:"address" env:"ADDRESS" flag:"a" default:":8080" comment:"Адрес и порт на котором запущен сервер"`
+	// Адрес и порт для подключения к сервера по grpc
+	GrpcAddress *string `json:"grpcaddress" env:"GRPCADDRESS" flag:"ag" default:"" comment:"Адрес и порт для запуска grpc сервера"`
 	// Частота оправки метрик в секундах
 	ReportInterval *int `json:"report_interval" env:"REPORT_INTERVAL" flag:"r" default:"10" comment:"report interval"`
 	// Частота обновления метрик
@@ -213,6 +215,8 @@ func ParseFlag() (*RunParameters, error) {
 
 		v.Elem().Field(i).Set(val)
 	}
+
+	params.KeyHash = &flagKeyHash
 
 	return &params, nil
 }

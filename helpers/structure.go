@@ -1,6 +1,9 @@
 package helpers
 
-import "reflect"
+import (
+	"log"
+	"reflect"
+)
 
 /*
 StructToMap Преобразование стурктуры в map[string]interface{}. Ключ это имя поля, а
@@ -14,7 +17,7 @@ func StructToMap(data interface{}) map[string]interface{} {
 	}
 
 	if value.Kind() != reflect.Struct {
-		return nil
+		log.Fatal("needed struct")
 	}
 
 	typ := value.Type()

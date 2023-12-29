@@ -5,18 +5,19 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
-	"github.com/Genry72/collecting-metrics/helpers"
 	"github.com/Genry72/collecting-metrics/internal/models"
+	"github.com/Genry72/collecting-metrics/internal/usecases/agent/grpcClient"
+	"github.com/Genry72/collecting-metrics/internal/usecases/agent/httpClient"
 	"github.com/Genry72/collecting-metrics/internal/usecases/cryptor"
-	"github.com/go-resty/resty/v2"
-	jsoniter "github.com/json-iterator/go"
+	interceptor "github.com/Genry72/collecting-metrics/internal/usecases/interceptor/agent"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"time"
 )
 
 type Agent struct {
-	httpClient    *resty.Client
-	hostPort      string
+	client        SenderMetrics
 	log           *zap.Logger
 	keyHash       *string
 	publicKey     *rsa.PublicKey
@@ -24,20 +25,11 @@ type Agent struct {
 }
 
 // NewAgent Получение агента для сбора и отправки метрик
-func NewAgent(hostPort string, log *zap.Logger, keyHash *string, publicKeyPath *string, rateLimitPtr *int) (*Agent, error) {
-
-	rateLimit := 0
-	if rateLimitPtr == nil || *rateLimitPtr == 0 {
-		rateLimit = 1
-	} else {
-		rateLimit = *rateLimitPtr
-	}
-
-	restyClient := resty.New()
-
-	restyClient.SetTimeout(time.Second)
-
+func NewAgent(hostPort string, grpcHostPort *string, log *zap.Logger, keyHash *string, publicKeyPath *string, rateLimitPtr *int) (*Agent, error) {
+	var client SenderMetrics
+	// устанавливаем соединение с сервером
 	var (
+		grpcconn  *grpc.ClientConn
 		publicLey *rsa.PublicKey
 		err       error
 	)
@@ -49,9 +41,47 @@ func NewAgent(hostPort string, log *zap.Logger, keyHash *string, publicKeyPath *
 		}
 	}
 
+	if grpcHostPort != nil && *grpcHostPort != "" {
+		interceptors := make([]grpc.UnaryClientInterceptor, 0)
+
+		// логирование запросов
+		interceptors = append(interceptors, interceptor.Logging(log))
+
+		// Передача ip адреса в метаданных
+		interceptors = append(interceptors, interceptor.SetIpToHeader(log))
+
+		// шифрование тела запроса
+		if publicLey != nil {
+			interceptors = append(interceptors, interceptor.EncryptBodyWithPublicKey(log, publicLey))
+		}
+
+		// Добавление метаданных с хешем тела запроса
+		if keyHash != nil && *keyHash != "" {
+			interceptors = append(interceptors, interceptor.SetHashToHeader(log, *keyHash))
+		}
+
+		grpcconn, err = grpc.Dial(*grpcHostPort, grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithChainUnaryInterceptor(interceptors...))
+
+		if err != nil {
+			log.Fatal("grpc.Dial", zap.Error(err))
+		}
+		client, err = grpcClient.NewGrpcClient(grpcconn, log, keyHash, publicKeyPath)
+	}
+
+	if grpcconn == nil {
+		client, err = httpClient.NewHttpClient(hostPort, log, keyHash, publicKeyPath)
+	}
+
+	rateLimit := 0
+	if rateLimitPtr == nil || *rateLimitPtr == 0 {
+		rateLimit = 1
+	} else {
+		rateLimit = *rateLimitPtr
+	}
+
 	return &Agent{
-		httpClient:    restyClient,
-		hostPort:      hostPort,
+		client:        client,
 		log:           log,
 		keyHash:       keyHash,
 		publicKey:     publicLey,
@@ -69,7 +99,11 @@ func (a *Agent) SendMetrics(ctx context.Context, metric *Metrics, reportInterval
 	for {
 		select {
 		case <-ctx.Done():
-			//a.log.Info("Stop SendMetrics process")
+
+			if err := a.client.Stop(); err != nil {
+				a.log.Error("a.connGrpc.Close", zap.Error(err))
+			}
+
 			return
 		case <-t.C:
 			metrics, err := metric.getMetrics()
@@ -82,7 +116,7 @@ func (a *Agent) SendMetrics(ctx context.Context, metric *Metrics, reportInterval
 				return
 			}
 
-			if err := a.sendByJSONBatch(ctx, metrics); err != nil {
+			if err := a.send(ctx, metrics); err != nil {
 				a.log.Error("sendByJSONBatch", zap.Error(err))
 				return
 			}
@@ -100,7 +134,7 @@ sendByJSONBatch отправляет метрики через HTTP POST зап�
 Функция выполняет повторные запросы в случае ошибки, используя заданные интервалы повторов.
 Возвращает ошибку, если все повторные запросы неудачны или если статус ответа не является успешным.
 */
-func (a *Agent) sendByJSONBatch(ctx context.Context, metric models.Metrics) error {
+func (a *Agent) send(ctx context.Context, metric models.Metrics) error {
 	select {
 	case <-ctx.Done():
 		return nil
@@ -108,77 +142,28 @@ func (a *Agent) sendByJSONBatch(ctx context.Context, metric models.Metrics) erro
 		defer func() {
 			<-a.ratelimitChan
 		}()
-		url := "/updates"
-
-		// Индекс - количество выполненных повторов. Значение пауза в секундах
-		retry := []time.Duration{0, 1, 3, 5}
 
 		var (
 			rErr error
 		)
 
+		// Индекс - количество выполненных повторов. Значение пауза в секундах
+		retry := []time.Duration{0, 1, 3, 5}
+
 		for i := 0; i < len(retry); i++ {
 			sleepTime := retry[i]
 			time.Sleep(sleepTime * time.Second)
 
-			client := a.httpClient.R().SetContext(ctx)
-
-			json := jsoniter.ConfigCompatibleWithStandardLibrary
-
-			metricJSON, err := json.Marshal(metric)
-			if err != nil {
-				return err
-			}
-			// Шифроуем тело запроса, если передан публичный ключ
-			if a.publicKey != nil {
-				metricJSON, err = cryptor.EncryptBodyWithPublicKey(metricJSON, a.publicKey)
-				if err != nil {
-					return fmt.Errorf("cryptor.EncryptBodyWithPublicKey: %w", err)
-				}
-			}
-
-			// Добавляем заголовок с хешем тела запроса, если передан ключ
-			if a.keyHash != nil {
-				hash, err := cryptor.Encrypt(metricJSON, *a.keyHash)
-				if err != nil {
-					return fmt.Errorf("cryptor.Encrypt: %w", err)
-				}
-
-				client.SetHeader(models.HeaderHash, hash)
-			}
-
-			// Добавляем заголовок с локальным ip
-			localIP, err := helpers.GetLocalIP()
-			if err != nil {
-				a.log.Error("helpers.GetLocalIP", zap.Error(err))
-			} else {
-				client.SetHeader(models.HeaderTrustedSubnet, localIP.String())
-			}
-
-			resp, err := client.SetBody(metricJSON).Post(a.hostPort + url)
-			if err != nil {
-				if ctx.Err() != nil {
-					return nil
-				}
-				a.log.Error("resp", zap.Error(err))
-				// или сеть или тело ответа
-				continue
-			}
-
-			if err := checkStatus(resp.StatusCode(), string(resp.Body())); err != nil {
-				a.log.Error("checkStatus", zap.Error(err))
+			if err := a.client.Send(ctx, metric); err != nil {
 				rErr = err
 				var e *models.RetryError
 				if errors.As(err, &e) {
 					// ошибка, при которой нужно повторить запрос
 					continue
+				} else {
+					return err
 				}
-
-				return err
 			}
-			// если дошли до сюда, то запрос выполнился корректно
-			rErr = nil
-			break
 		}
 
 		//a.log.Info("metrics send success")
@@ -186,6 +171,11 @@ func (a *Agent) sendByJSONBatch(ctx context.Context, metric models.Metrics) erro
 		return rErr
 	}
 
+}
+
+type SenderMetrics interface {
+	Send(ctx context.Context, metric models.Metrics) error
+	Stop() error
 }
 
 func checkStatus(statusCode int, body string) error {

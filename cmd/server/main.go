@@ -102,6 +102,11 @@ func main() {
 		}
 	}()
 
+	s := handlers.NewGrpsServer(uc, zapLogger, conf.KeyHash, conf.CryptoKey, conf.TrustedSubnet)
+	go func() {
+		s.RunServer(*conf.GrpcAddress)
+	}()
+
 	// 	Запуск периодической отправки метрик в файл
 	uc.RunSaveToPermanentStorage(ctxMain)
 

@@ -53,7 +53,9 @@ func main() {
 		zapLogger.Fatal("empty endpoint")
 	}
 
-	agentUc, err := agent.NewAgent("http://"+*conf.Address, zapLogger, conf.KeyHash, conf.CryptoKey, conf.RateLimit)
+	agentUc, err := agent.NewAgent("http://"+*conf.Address,
+		conf.GrpcAddress, zapLogger, conf.KeyHash, conf.CryptoKey, conf.RateLimit)
+
 	if err != nil {
 		zapLogger.Fatal("agent.NewAgent", zap.Error(err))
 	}
