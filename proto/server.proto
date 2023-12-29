@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package collectingmetrics;
+
+option go_package = "./proto";
+
+message String{
+  string result = 1;
+  string error = 2; // ошибка
+}
+
+// Пустое сообщение
+message EmptyMessage {
+}
+// Значение метрики
+message Metric {
+  string id = 1;
+  string type = 2;
+  int64 delta = 3;
+  double value = 4;
+  string value_text = 5;
+}
+// Список метрик
+message Metrics {
+  repeated Metric metrics = 1;
+}
+
+message EncryptedMessage{
+  bytes Data = 1;
+}
+
+message MetricType {
+  string value = 1;
+}
+
+message MetricName {
+  string value = 1;
+}
+
+enum Type {
+  GAUGE = 0;
+  COUNTER = 1;
+}
+
+service Server {
+    rpc GetAllMetrics(EmptyMessage) returns (String);
+    rpc SetMetrics(Metrics) returns (EmptyMessage);
+    rpc SetMetricsEncrypted(EncryptedMessage) returns (EmptyMessage);
+}

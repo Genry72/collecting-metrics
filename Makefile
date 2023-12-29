@@ -20,11 +20,11 @@ test: build
 
 .PHONY: runServer
 runServer: build
-	./cmd/server/server -a ":$(port)" -f "./tests.txt" -d "postgres://postgres:pass@localhost:5432/metrics?sslmode=disable" -k "superKey" -crypto-key "./internal/usecases/cryptor/private.key"
+	./cmd/server/server -a ":$(port)" -f "./tests.txt" -d "postgres://postgres:pass@localhost:5432/metrics?sslmode=disable" -k "superKey" -crypto-key "./internal/usecases/cryptor/private.key" -t "192.168.31.1/24"
 
 .PHONY: runAgent
 runAgent: build
-	./cmd/agent/agent -a ":$(port)" -r 10 -p 2 -k "superKey" -l 1 -crypto-key "./internal/usecases/cryptor/public.key"
+	./cmd/agent/agent -a ":$(port)" -r 10 -p 2 -k "superKey" -l 1 -crypto-key "./internal/usecases/cryptor/public.key" -ag ":3200"
 
 .PHONY: cover
 cover:
@@ -70,3 +70,9 @@ showAgentBaseProfile:
 .PHONY: showAgentResultProfile
 showAgentResultProfile:
 	go tool pprof -http=":9090" ./cmd/agent/profiles/result.pprof ./cmd/agent/agent
+
+.PHONY: genProto
+genProto:
+	protoc --go_out=. --go_opt=paths=source_relative \
+      --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+      proto/server.proto

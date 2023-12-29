@@ -97,9 +97,14 @@ func main() {
 	h := handlers.NewServer(uc, zapLogger)
 
 	go func() {
-		if err := h.RunServer(conf.Address, conf.KeyHash, conf.CryptoKey, organization); err != nil {
+		if err := h.RunServer(conf.Address, conf.KeyHash, conf.CryptoKey, organization, conf.TrustedSubnet); err != nil {
 			zapLogger.Fatal(err.Error())
 		}
+	}()
+
+	s := handlers.NewGrpsServer(uc, zapLogger, conf.KeyHash, conf.CryptoKey, conf.TrustedSubnet)
+	go func() {
+		s.RunServer(*conf.GrpcAddress)
 	}()
 
 	// 	Запуск периодической отправки метрик в файл

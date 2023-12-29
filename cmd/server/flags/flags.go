@@ -27,6 +27,8 @@ const (
 type RunParameters struct {
 	// Адрес и порт для запуска сервера
 	Address *string `json:"address" env:"ADDRESS" flag:"a" default:":8080" comment:"Адрес и порт для запуска сервера"`
+	// Адрес и порт для запуска grpc сервера
+	GrpcAddress *string `json:"grpcaddress" env:"GRPCADDRESS" flag:"ag" default:":3200" comment:"Адрес и порт для запуска grpc сервера"`
 	// булево значение (true/false), определяющее, загружать или нет ранее сохранённые значения из указанного файла
 	// при старте сервера (по умолчанию true)
 	Restore *bool `json:"restore" env:"RESTORE" flag:"r" default:"true" comment:"Загрузка из файла при старте"`
@@ -42,6 +44,8 @@ type RunParameters struct {
 	CryptoKey *string `json:"crypto_key" env:"CRYPTO_KEY" flag:"crypto-key" default:"" comment:"Путь до файла с приватным ключом"`
 	// Кдюч шифрования
 	KeyHash *string `json:"-"`
+	// Доверенная подсеть для ограничения входящих запросов
+	TrustedSubnet *string `json:"trusted_subnet" env:"TRUSTED_SUBNET" flag:"t" default:"" comment:"Доверенная подсеть"`
 }
 
 func ParseFlag() (*RunParameters, error) {
@@ -226,6 +230,10 @@ func ParseFlag() (*RunParameters, error) {
 		}
 
 		v.Elem().Field(i).Set(val)
+	}
+
+	if flagKeyHash != "" {
+		params.KeyHash = &flagKeyHash
 	}
 
 	return &params, nil

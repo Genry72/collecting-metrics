@@ -4,7 +4,8 @@ import (
 	"context"
 	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/Genry72/collecting-metrics/internal/models"
-	"github.com/go-resty/resty/v2"
+	"github.com/Genry72/collecting-metrics/internal/usecases/agent/httpclients"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
@@ -64,15 +65,15 @@ func TestAgent_send(t *testing.T) {
 			}))
 
 			defer server.Close()
-
+			client, err := httpclients.NewHTTPClient(server.URL, logger.NewZapLogger("info"), nil, nil)
+			assert.NoError(t, err)
 			a := &Agent{
-				httpClient:    resty.New(),
-				hostPort:      server.URL,
+				client:        client,
 				log:           logger.NewZapLogger("info"),
 				ratelimitChan: make(chan struct{}, 1),
 			}
 
-			if err := a.sendByJSONBatch(context.Background(), []*models.Metric{tt.args.metric}); (err != nil) != tt.wantErr {
+			if err := a.send(context.Background(), []*models.Metric{tt.args.metric}); (err != nil) != tt.wantErr {
 				t.Errorf("sendByURL() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
@@ -101,7 +102,7 @@ func TestNewAgent(t *testing.T) {
 	key := "superKey"
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got, _ := NewAgent(tt.args.hostPort, zapLogger, &key, nil, nil); !reflect.DeepEqual(got, tt.want) {
+			if got, _ := NewAgent(tt.args.hostPort, nil, zapLogger, &key, nil, nil); !reflect.DeepEqual(got, tt.want) {
 				require.IsType(t, &Agent{}, got)
 			}
 		})
