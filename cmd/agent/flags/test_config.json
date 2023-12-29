@@ -1,0 +1,6 @@
+{
+  "address": ":8081",
+  "report_interval": 1,
+  "poll_interval": 1,
+  "crypto_key": "/path/to/key.pem"
+}

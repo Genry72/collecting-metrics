@@ -31,7 +31,7 @@ func BenchmarkHandlers(b *testing.B) {
 		log:      zapLogger,
 	}
 
-	h.setupRoute(ginRoute, nil) // todo добавить пароль
+	h.setupRoute(ginRoute)
 
 	type args struct {
 		metricCount int // Количество метрик, необходимых для теста

@@ -3,20 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/Genry72/collecting-metrics/cmd/agent/flags"
 	"github.com/Genry72/collecting-metrics/internal/logger"
 	"github.com/Genry72/collecting-metrics/internal/usecases/agent"
+	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-)
-
-var (
-	flagEndpointServer string // endpoint сервера
-	flagReportInterval int    // Частота оправки метрик в секундах
-	flagPollInterval   int    // Частота обновления метрик
-	flagKeyHash        string // Ключ для расчета HashSHA256
-	flagRateLimit      uint64 // Количество одновременно исходящих запросов на сервер
 )
 
 // Информация о сборке
@@ -26,22 +20,11 @@ var (
 	buildCommit  string
 )
 
-const (
-	envEndpoint       = "ADDRESS"
-	envreportInterval = "REPORT_INTERVAL"
-	envPollInterval   = "POLL_INTERVAL"
-	envKeyHash        = "KEY"
-	envRateLimit      = "RATE_LIMIT"
-)
-
 func main() {
 	// Печать информации о сборке
 	fmt.Println("Build version:", printBuildInfo(buildVersion))
 	fmt.Println("Build date:", printBuildInfo(buildDate))
 	fmt.Println("Build commit:", printBuildInfo(buildCommit))
-
-	// обрабатываем аргументы командной строки
-	parseFlags()
 
 	zapLogger := logger.NewZapLogger("info")
 
@@ -51,26 +34,33 @@ func main() {
 
 	zapLogger.Info("start agent")
 
+	// обрабатываем аргументы командной строки
+	conf, err := flags.ParseFlag()
+	if err != nil {
+		zapLogger.Fatal("flags.ParseFlag", zap.Error(err))
+	}
+
 	metrics := agent.NewMetrics()
 
 	ctx, cansel := context.WithCancel(context.Background())
 
 	// Запускаем обновление раз в 2 секунты
 	go func() {
-		metrics.Update(ctx, time.Duration(flagPollInterval)*time.Second)
+		metrics.Update(ctx, time.Duration(*conf.PollInterval)*time.Second)
 	}()
 
-	var keyHash *string
-
-	if flagKeyHash != "" {
-		keyHash = &flagKeyHash
+	if conf.Address == nil || *conf.Address == "" {
+		zapLogger.Fatal("empty endpoint")
 	}
 
-	agentUc := agent.NewAgent("http://"+flagEndpointServer, zapLogger, keyHash, flagRateLimit)
+	agentUc, err := agent.NewAgent("http://"+*conf.Address, zapLogger, conf.KeyHash, conf.CryptoKey, conf.RateLimit)
+	if err != nil {
+		zapLogger.Fatal("agent.NewAgent", zap.Error(err))
+	}
 
 	// Запускаем отправку метрик раз 10 секунд
 	go func() {
-		agentUc.SendMetrics(ctx, metrics, time.Duration(flagReportInterval)*time.Second)
+		agentUc.SendMetrics(ctx, metrics, time.Duration(*conf.ReportInterval)*time.Second)
 	}()
 
 	// Graceful shutdown block

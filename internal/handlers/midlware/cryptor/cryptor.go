@@ -2,6 +2,7 @@ package cryptor
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"github.com/Genry72/collecting-metrics/internal/models"
 	"github.com/Genry72/collecting-metrics/internal/usecases/cryptor"
 	"github.com/gin-gonic/gin"
@@ -74,5 +75,31 @@ func CheckHashFromHeader(log *zap.Logger, password string) gin.HandlerFunc {
 
 		c.Next()
 
+	}
+}
+
+// DecryptBodyWithPrivateKey декодирование тела входящего запроса с при помощи закрытого ключа
+func DecryptBodyWithPrivateKey(log *zap.Logger, privateKey *rsa.PrivateKey) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Считываем закодированное тело запроса
+		encryptedBody, err := c.GetRawData()
+		if err != nil {
+			log.Error("c.GetRawData", zap.Error(err))
+			c.String(http.StatusBadRequest, models.ErrBadBody.Error())
+			return
+		}
+
+		// Расшифровываем
+		decryptedBody, err := cryptor.DecryptWithPrivateKey(encryptedBody, privateKey)
+		if err != nil {
+			log.Error("cryptor.DecryptWithPrivateKey", zap.Error(err))
+			c.String(http.StatusBadRequest, models.ErrBadBody.Error())
+			return
+		}
+
+		// Возвращаем расшифрованное тело запроса
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(decryptedBody))
+
+		c.Next()
 	}
 }

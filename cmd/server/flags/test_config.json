@@ -1,0 +1,8 @@
+{
+  "address": ":8081",
+  "restore": false,
+  "store_interval": 1,
+  "store_file": "/tmp/metrics-db.json",
+  "database_dsn": "",
+  "crypto_key": ""
+}

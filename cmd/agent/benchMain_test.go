@@ -27,7 +27,7 @@ func BenchmarkHandlers(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			runtime.MemProfileRate = 0
 			metrics := agent.NewMetrics()
-			agentUc := agent.NewAgent(s.URL, zapLogger, &keyHash, 100)
+			agentUc, _ := agent.NewAgent(s.URL, zapLogger, &keyHash, nil, nil)
 
 			runtime.MemProfileRate = 1
 			ctx, c1 := context.WithTimeout(context.Background(), 10*time.Millisecond)

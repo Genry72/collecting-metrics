@@ -19,11 +19,16 @@ type PGStorage struct {
 }
 
 // NewPGStorage возвращает хранилище postgresql
-func NewPGStorage(dsn string, log *zap.Logger) (*PGStorage, error) {
-	db, err := sqlx.Connect("postgres", dsn)
+func NewPGStorage(dsn *string, log *zap.Logger) (*PGStorage, error) {
+	if dsn == nil || *dsn == "" {
+		return nil, fmt.Errorf("empty dsn")
+	}
+
+	db, err := sqlx.Connect("postgres", *dsn)
 	if err != nil {
 		return nil, fmt.Errorf("sqlx.Connect: %w", err)
 	}
+
 	db.SetMaxOpenConns(10)
 	db.SetConnMaxLifetime(10 * time.Second)
 	db.SetMaxIdleConns(10)
